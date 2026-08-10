@@ -41,3 +41,71 @@ test("D1 rejects a scope without STOP and Cleanup", () => {
   assert.ok(issues.some((issue) => issue.includes("STOP")));
   assert.ok(issues.some((issue) => issue.includes("Cleanup")));
 });
+
+const d2Files = {
+  "cves/CVE-2021-41773/execution/control.json": JSON.stringify({
+    control_id: "CTL-LOCAL-001",
+    purpose: "비파괴 로컬 Proof",
+    command: "./fixed-probe.sh",
+    target: "127.0.0.1:8080",
+    expected_impact: "교육용 Marker 확인",
+    success_matcher: "marker-and-log",
+    failure_matcher: "marker-absent",
+    timeout_seconds: 10,
+    cleanup: "docker compose down",
+    decision: "GO"
+  }),
+  "cves/CVE-2021-41773/execution/observation.json": JSON.stringify({
+    observation_id: "OBS-LOCAL-001",
+    control_id: "CTL-LOCAL-001",
+    environment: "vulnerable",
+    target: "127.0.0.1:8080",
+    input_sha256: "a".repeat(64),
+    request_sha256: "b".repeat(64),
+    criteria_sha256: "c".repeat(64),
+    matcher: "marker-and-log",
+    stdout_ref: "evidence/masked/stdout.txt",
+    stderr_ref: "evidence/masked/stderr.txt",
+    exit_code: 0,
+    request_ref: "evidence/masked/request.txt",
+    response_ref: "evidence/masked/response.txt",
+    server_log_ref: "evidence/masked/server.log",
+    cleanup_result: "PASS"
+  }),
+  "cves/CVE-2021-41773/lab/compose.yaml":
+    "services:\n  vulnerable:\n    image: example.invalid/apache@sha256:" + "b".repeat(64) + "\n    ports:\n      - 127.0.0.1:8080:80\n"
+};
+
+test("D2 is GO for an approved loopback control and complete observation", () => {
+  assert.deepEqual(checkDay(fixture(d2Files), "D2"), []);
+});
+
+test("D2 stops an external target", () => {
+  const files = { ...d2Files };
+  const control = JSON.parse(files["cves/CVE-2021-41773/execution/control.json"]);
+  control.target = "example.com";
+  files["cves/CVE-2021-41773/execution/control.json"] = JSON.stringify(control);
+  assert.ok(checkDay(fixture(files), "D2").some((issue) => issue.includes("target")));
+});
+
+test("D2 rejects missing approval and incomplete cleanup", () => {
+  const files = { ...d2Files };
+  const control = JSON.parse(files["cves/CVE-2021-41773/execution/control.json"]);
+  control.decision = "PENDING";
+  control.cleanup = "UNSET";
+  files["cves/CVE-2021-41773/execution/control.json"] = JSON.stringify(control);
+  const issues = checkDay(fixture(files), "D2");
+  assert.ok(issues.some((issue) => issue.includes("GO")));
+  assert.ok(issues.some((issue) => issue.includes("cleanup")));
+});
+
+test("D2 rejects unsafe Compose settings", () => {
+  const files = {
+    ...d2Files,
+    "cves/CVE-2021-41773/lab/compose.yaml":
+      "services:\n  vulnerable:\n    privileged: true\n    network_mode: host\n"
+  };
+  const issues = checkDay(fixture(files), "D2");
+  assert.ok(issues.some((issue) => issue.includes("privileged")));
+  assert.ok(issues.some((issue) => issue.includes("host network")));
+});

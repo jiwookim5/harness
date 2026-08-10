@@ -47,7 +47,74 @@ function checkD1(root) {
   return issues;
 }
 
+function readJson(root, relative, issues) {
+  const content = read(root, relative, issues);
+  if (!content) return {};
+  try {
+    return JSON.parse(content);
+  } catch {
+    issues.push(relative + ": invalid JSON");
+    return {};
+  }
+}
+
+function isLoopbackTarget(value) {
+  return /^(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(String(value));
+}
+
+function checkD2(root) {
+  const issues = [];
+  const controlPath = "cves/CVE-2021-41773/execution/control.json";
+  const observationPath = "cves/CVE-2021-41773/execution/observation.json";
+  const composePath = "cves/CVE-2021-41773/lab/compose.yaml";
+  const control = readJson(root, controlPath, issues);
+  const observation = readJson(root, observationPath, issues);
+  const compose = read(root, composePath, issues);
+
+  if (!isLoopbackTarget(control.target)) issues.push(controlPath + ": target must be loopback");
+  if (control.decision !== "GO") issues.push(controlPath + ": explicit GO required");
+  if (!control.cleanup || control.cleanup === "UNSET") issues.push(controlPath + ": cleanup required");
+  if (!Number.isInteger(control.timeout_seconds) || control.timeout_seconds < 1) {
+    issues.push(controlPath + ": positive timeout_seconds required");
+  }
+
+  if (observation.control_id !== control.control_id) {
+    issues.push(observationPath + ": control_id mismatch");
+  }
+  if (observation.target !== control.target) {
+    issues.push(observationPath + ": target mismatch");
+  }
+  if (observation.matcher !== control.success_matcher) {
+    issues.push(observationPath + ": matcher mismatch");
+  }
+  if (!Number.isInteger(observation.exit_code)) {
+    issues.push(observationPath + ": integer exit_code required");
+  }
+  for (const field of [
+    "input_sha256",
+    "request_sha256",
+    "criteria_sha256",
+    "stdout_ref",
+    "stderr_ref",
+    "request_ref",
+    "response_ref",
+    "server_log_ref",
+    "cleanup_result"
+  ]) {
+    if (!observation[field] || observation[field] === "UNSET") {
+      issues.push(observationPath + ": " + field + " required");
+    }
+  }
+
+  if (/privileged:\s*true/i.test(compose)) issues.push(composePath + ": privileged forbidden");
+  if (/network_mode:\s*host/i.test(compose)) issues.push(composePath + ": host network forbidden");
+  if (/0\.0\.0\.0:/.test(compose)) issues.push(composePath + ": non-loopback bind forbidden");
+  if (/\/var\/run\/docker\.sock/.test(compose)) issues.push(composePath + ": Docker socket forbidden");
+  return issues;
+}
+
 export function checkDay(root, day) {
   if (day === "D1") return checkD1(root);
+  if (day === "D2") return checkD2(root);
   return ["unsupported day: " + day];
 }
