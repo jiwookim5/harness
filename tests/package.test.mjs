@@ -6,8 +6,9 @@ import { execFileSync } from "node:child_process";
 import { createPackage } from "../scripts/package-starter.mjs";
 
 const root = resolve(import.meta.dirname, "..");
+const hasGitMetadata = existsSync(resolve(root, ".git"));
 
-test("git archive excludes repository metadata and raw evidence", () => {
+test("git archive excludes repository metadata and raw evidence", { skip: !hasGitMetadata }, () => {
   const output = resolve(root, "dist/security-wave-cve-harness-starter.zip");
   rmSync(resolve(root, "dist"), { recursive: true, force: true });
   createPackage(root, output);
