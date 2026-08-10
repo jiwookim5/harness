@@ -2,7 +2,9 @@
 
 ## 시작
 
-저장소를 Claude Code 또는 Codex에서 열고 DAY 1 START를 입력한다.
+학생 사본을 Claude Code Sonnet에서 열고 `DAY 1 START`를 입력한다. 강의 PPT를 띄운 뒤 학생이
+shell 명령을 외워 입력하지 않고, 각 페이지의 `입력 프롬프트`를 Claude에 순서대로 전달한다.
+모델·작업공간·권한이 다르면 시작하지 말고 강사에게 확인한다.
 
 ## D1
 
@@ -17,8 +19,8 @@ Gate: Source 없는 FACT가 없고 CVE 관계를 구분하며 D2 성공·실패 
 
 1. localhost 취약/조치 환경과 Cleanup을 만든다.
 2. 공개 PoC를 정적 검토하고 비파괴 Probe로 축소한다.
-3. 필요하면 Nuclei Template을 추가한다.
-4. 실제 명령을 읽고 GO <control_id> 뒤 실행한다.
+3. 기본 강의에서는 고정 HTTP Probe를 사용하고 Nuclei는 실행하지 않는다.
+4. 실제 명령·Target·영향·Matcher·timeout·Cleanup을 읽고 `GO <control_id>` 뒤 실행한다.
 5. stdout, stderr, exit code, 요청, 응답, 로그를 보존한다.
 
 Gate: 외부 Target이 없고 Human GO와 실제 Observation이 있다.

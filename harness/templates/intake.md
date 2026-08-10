@@ -1,5 +1,6 @@
 # CVE Intake
 
+<!-- CVE ID와 제품이 UNSET이면 D1 Gate는 REVISE다. 확인하지 못한 다른 값은 UNKNOWN으로 남긴다. -->
 - CVE ID: UNSET
 - 제품: UNSET
 - Repository: UNSET

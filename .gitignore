@@ -3,6 +3,7 @@ node_modules/
 dist/
 .tmp/
 *.log
+!cves/*/evidence/masked/**/*.log
 *.pem
 *.key
 .env

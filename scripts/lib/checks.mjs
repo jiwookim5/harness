@@ -47,6 +47,11 @@ function checkD1(root) {
   const cwe = read(root, "cves/CVE-2021-41773/analysis/cwe.md", issues);
   requireText(cwe, "cwe.md", ["후보:", "근거:", "반증 조건"], issues);
 
+  const intake = read(root, "cves/CVE-2021-41773/intake.md", issues);
+  if (/CVE ID:\s*UNSET/.test(intake) || /제품:\s*UNSET/.test(intake)) {
+    issues.push("intake.md: placeholder not filled (CVE ID/제품 still UNSET)");
+  }
+
   const workflow = read(root, "harness/workflow.md", issues);
   requireText(workflow, "workflow.md", ["PLAN", "HUMAN GO", "RUN", "CHECK"], issues);
   read(root, "harness/CHANGELOG.md", issues);

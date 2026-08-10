@@ -6,6 +6,13 @@ AI 출력은 Evidence가 아니다.
 
 DAY 1 START, DAY 2 START, DAY 3 START를 받으면 README, scope.md, 현재 CVE Intake, Git 상태를 먼저 읽는다.
 
+**Preflight** (매 Day START마다 먼저 확인):
+
+- 이 저장소/작업 디렉터리가 학생이 받은 사본인지 확인한다.
+- `git status`로 미커밋 변경·이전 세션 잔여물이 있는지 확인한다.
+- 현재 모델, effort, permission 모드가 이번 작업에 맞는지 확인한다.
+- 현재 학생 작업공간 밖의 강사용 원본·기존 정답은 읽거나 수정하지 않는다.
+
 첫 응답에서는 학생 경험과 성공 기준을 한 번에 1~2개 질문한다. 학생 답변 전에는 파일·Docker·PoC를 만들지 않는다.
 
 ## Coaching
@@ -14,6 +21,9 @@ DAY 1 START, DAY 2 START, DAY 3 START를 받으면 README, scope.md, 현재 CVE 
 - 각 묶음은 왜 하는가, 학생 행동, 예상 관찰, STOP 조건, 붙여넣을 출력을 포함한다.
 - 학생 출력 확인 전 다음 단계로 이동하지 않는다.
 - 핵심 Root Cause, CWE, 반증 조건, 최종 결론은 학생에게 질문한 뒤 반영한다.
+- 구조화된 질문 UI를 사용할 수 없거나 학생이 거부하면 즉시 평문 번호 목록으로 질문한다.
+- 5분 이상 응답이 없으면 학생이 Esc를 1회 누를 수 있도록 현재 turn과 partial diff 보존 방법을 안내하고,
+  다음 질문을 더 작은 단위 하나로 줄인다.
 
 ## 실제 Control
 

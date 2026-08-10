@@ -20,6 +20,7 @@ const d1Files = {
   "cves/CVE-2021-41773/sources/source-map.md": "# Source Map\nSRC-001 | Apache | https://httpd.apache.org/ | 2026-08-10 | 영향 버전\n",
   "cves/CVE-2021-41773/analysis/root-cause.md": "# Root Cause\nFACT: [SRC-001] 코드 검증 경계를 확인했다.\nINFERENCE: 영향 흐름 후보.\nUNKNOWN: 설정 전제.\n반증 조건: Patch Diff가 다른 흐름을 보이면 기각.\n",
   "cves/CVE-2021-41773/analysis/cwe.md": "# CWE\n후보: CWE-UNKNOWN\n근거: [SRC-001]\n반증 조건: 입력 경계가 다르면 재분류.\n",
+  "cves/CVE-2021-41773/intake.md": "# CVE Intake\n- CVE ID: CVE-2021-41773\n- 제품: Apache HTTP Server\n- Repository: UNKNOWN\n- 취약 버전 후보: UNKNOWN\n- 조치 버전 후보: UNKNOWN\n- 공식 Source 후보: SRC-001\n- 로컬 재현 가능성: UNKNOWN\n- 위험과 제약: UNKNOWN\n- 완료 기준: UNKNOWN\n",
   "harness/workflow.md": "# Harness v0\nPLAN → HUMAN GO → RUN → CHECK\n",
   "harness/CHANGELOG.md": "# Changelog\nv0 시작\n"
 };
@@ -184,6 +185,15 @@ test("D3 preserves rejected and unknown evidence in the trace", () => {
   index.entries[1].preserve_in_trace = false;
   files["cves/CVE-2021-41773/evidence/index.json"] = JSON.stringify(index);
   assert.ok(checkDay(fixture(files), "D3").some((issue) => issue.includes("preserve_in_trace")));
+});
+
+test("D1 rejects an empty or stale placeholder intake.md", () => {
+  const files = {
+    ...d1Files,
+    "cves/CVE-2021-41773/intake.md":
+      "# CVE Intake\n- CVE ID: UNSET\n- 제품: UNSET\n- Repository: UNSET\n"
+  };
+  assert.ok(checkDay(fixture(files), "D1").some((issue) => issue.includes("intake.md")));
 });
 
 test("D1 classifies an external allowed target as STOP-worthy", () => {
