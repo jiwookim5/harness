@@ -185,3 +185,28 @@ test("D3 preserves rejected and unknown evidence in the trace", () => {
   files["cves/CVE-2021-41773/evidence/index.json"] = JSON.stringify(index);
   assert.ok(checkDay(fixture(files), "D3").some((issue) => issue.includes("preserve_in_trace")));
 });
+
+test("D1 classifies an external allowed target as STOP-worthy", () => {
+  const files = {
+    ...d1Files,
+    "scope.md": "# Scope\n허용 Target: example.com\nSTOP: 외부 Domain\nCleanup: 없음\n"
+  };
+  const issues = checkDay(fixture(files), "D1");
+  assert.ok(issues.some((issue) => issue.includes("allowed target")));
+});
+
+test("D2 never treats a pending decision as GO", () => {
+  const files = { ...d2Files };
+  const control = JSON.parse(files["cves/CVE-2021-41773/execution/control.json"]);
+  control.decision = "REVISE";
+  files["cves/CVE-2021-41773/execution/control.json"] = JSON.stringify(control);
+  assert.ok(checkDay(fixture(files), "D2").some((issue) => issue.includes("explicit GO")));
+});
+
+test("D3 rejects a report without any evidence reference", () => {
+  const files = {
+    ...d3Files,
+    "cves/CVE-2021-41773/report.md": "# Report\n근거 없는 성공 주장\n"
+  };
+  assert.ok(checkDay(fixture(files), "D3").some((issue) => issue.includes("at least one")));
+});

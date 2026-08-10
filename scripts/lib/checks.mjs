@@ -28,6 +28,10 @@ function checkD1(root) {
   const issues = [];
   const scope = read(root, "scope.md", issues);
   requireText(scope, "scope.md", ["localhost", "STOP", "Cleanup"], issues);
+  const allowedTarget = scope.match(/허용 Target:\s*(.+)/)?.[1]?.trim();
+  if (!allowedTarget || !/^(localhost|127\.0\.0\.1)/.test(allowedTarget)) {
+    issues.push("scope.md: allowed target must be loopback");
+  }
 
   const source = read(root, "cves/CVE-2021-41773/sources/source-map.md", issues);
   if (!/https?:\/\//.test(source) && !/[a-f0-9]{7,40}/.test(source)) {
