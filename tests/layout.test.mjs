@@ -36,3 +36,28 @@ test("package scripts stay dependency-free and deterministic", () => {
   assert.equal(pkg.scripts["new:cve"], "node scripts/new-cve.mjs");
   assert.equal(pkg.scripts.pack, "node scripts/package-starter.mjs");
 });
+
+test("first CVE workspace and harness templates are complete", () => {
+  const requiredWorkspace = [
+    "harness/templates/intake.md",
+    "harness/templates/source-map.md",
+    "harness/templates/claim-ledger.json",
+    "harness/templates/control.json",
+    "harness/templates/observation.json",
+    "harness/templates/report.md",
+    "cves/CVE-2021-41773/README.md",
+    "cves/CVE-2021-41773/sources/source-map.md",
+    "cves/CVE-2021-41773/analysis/README.md",
+    "cves/CVE-2021-41773/lab/README.md",
+    "cves/CVE-2021-41773/weaponization/README.md",
+    "cves/CVE-2021-41773/execution/README.md",
+    "cves/CVE-2021-41773/evidence/raw/.gitkeep",
+    "cves/CVE-2021-41773/evidence/masked/.gitkeep",
+    "cves/CVE-2021-41773/evidence/index.json",
+    "cves/CVE-2021-41773/retrospective/README.md",
+    "cves/CVE-2021-41773/report.md"
+  ];
+  for (const relative of requiredWorkspace) {
+    assert.equal(existsSync(resolve(root, relative)), true, relative);
+  }
+});
