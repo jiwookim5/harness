@@ -56,3 +56,10 @@ test("validator accepts an empty raw evidence directory", () => {
   });
   assert.deepEqual(validateStarter(root), []);
 });
+
+test("validator rejects secret material in documentation", () => {
+  const root = sandbox({
+    "notes/leak.md": "-----BEGIN PRIVATE KEY-----\nredacted fixture\n"
+  });
+  assert.ok(validateStarter(root).some((issue) => issue.includes("secret material")));
+});

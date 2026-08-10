@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { checkDay } from "./lib/checks.mjs";
+import { checkDay, classifyDecision } from "./lib/checks.mjs";
 
 const day = process.argv[2];
 if (!["D1", "D2", "D3"].includes(day)) {
@@ -9,9 +9,12 @@ if (!["D1", "D2", "D3"].includes(day)) {
 
 const root = resolve(import.meta.dirname, "..");
 const issues = checkDay(root, day);
-if (issues.length) {
-  for (const issue of issues) console.error("REVISE " + issue);
-  console.error("DAY=" + day + " DECISION=REVISE issues=" + issues.length);
-  process.exit(1);
+const decision = classifyDecision(issues);
+if (decision !== "GO") {
+  for (const issue of issues) {
+    console.error(issue.startsWith("STOP ") ? issue : "REVISE " + issue);
+  }
+  console.error("DAY=" + day + " DECISION=" + decision + " issues=" + issues.length);
+  process.exit(decision === "STOP" ? 2 : 1);
 }
 console.log("DAY=" + day + " DECISION=GO");

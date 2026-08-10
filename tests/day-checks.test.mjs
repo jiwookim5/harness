@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
-import { checkDay } from "../scripts/lib/checks.mjs";
+import { checkDay, classifyDecision } from "../scripts/lib/checks.mjs";
 
 function fixture(files) {
   const root = mkdtempSync(join(tmpdir(), "cve-day-"));
@@ -209,4 +209,31 @@ test("D3 rejects a report without any evidence reference", () => {
     "cves/CVE-2021-41773/report.md": "# Report\n근거 없는 성공 주장\n"
   };
   assert.ok(checkDay(fixture(files), "D3").some((issue) => issue.includes("at least one")));
+});
+
+test("decision classification separates empty work from scope violations", () => {
+  assert.equal(classifyDecision([]), "GO");
+  assert.equal(classifyDecision(["scope.md: allowed target required"]), "REVISE");
+  assert.equal(classifyDecision(["STOP scope.md: allowed target must be loopback"]), "STOP");
+});
+
+test("D2 rejects malformed observation hashes", () => {
+  const files = { ...d2Files };
+  const observation = JSON.parse(files["cves/CVE-2021-41773/execution/observation.json"]);
+  observation.input_sha256 = "not-a-hash";
+  files["cves/CVE-2021-41773/execution/observation.json"] = JSON.stringify(observation);
+  assert.ok(
+    checkDay(fixture(files), "D2").some(
+      (issue) => issue.includes("input_sha256") && issue.includes("SHA-256")
+    )
+  );
+});
+
+test("D2 requires an immutable image digest", () => {
+  const files = {
+    ...d2Files,
+    "cves/CVE-2021-41773/lab/compose.yaml":
+      "services:\n  vulnerable:\n    image: example.invalid/apache:latest\n    ports:\n      - 127.0.0.1:8080:80\n"
+  };
+  assert.ok(checkDay(fixture(files), "D2").some((issue) => issue.includes("image digest")));
 });

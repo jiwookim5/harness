@@ -7,8 +7,11 @@ const unsafe = [
   [/privileged:\s*true/i, "privileged container"],
   [/network_mode:\s*host/i, "host network"],
   [/0\.0\.0\.0:/, "non-loopback bind"],
-  [/\/var\/run\/docker\.sock/, "Docker socket mount"],
-  [/(AKIA|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY)/, "secret material"]
+  [/\/var\/run\/docker\.sock/, "Docker socket mount"]
+];
+const secretPatterns = [
+  /AKIA[0-9A-Z]{12,}/,
+  /BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY/
 ];
 
 export function validateStarter(root) {
@@ -21,8 +24,12 @@ export function validateStarter(root) {
     const fixtureOrValidator =
       relative.startsWith("tests/") ||
       relative === "scripts/validate-starter.mjs";
-    if (fixtureOrValidator || !executableExtensions.has(extname(file))) continue;
+    if (fixtureOrValidator) continue;
     const content = read(file);
+    if (secretPatterns.some((pattern) => pattern.test(content))) {
+      issues.push(relative + ": secret material");
+    }
+    if (!executableExtensions.has(extname(file))) continue;
     for (const [pattern, label] of unsafe) {
       if (pattern.test(content)) issues.push(relative + ": " + label);
     }

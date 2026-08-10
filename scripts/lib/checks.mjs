@@ -29,8 +29,10 @@ function checkD1(root) {
   const scope = read(root, "scope.md", issues);
   requireText(scope, "scope.md", ["localhost", "STOP", "Cleanup"], issues);
   const allowedTarget = scope.match(/허용 Target:\s*(.+)/)?.[1]?.trim();
-  if (!allowedTarget || !/^(localhost|127\.0\.0\.1)/.test(allowedTarget)) {
-    issues.push("scope.md: allowed target must be loopback");
+  if (!allowedTarget) {
+    issues.push("scope.md: allowed target required");
+  } else if (!/^(localhost|127\.0\.0\.1)/.test(allowedTarget)) {
+    issues.push("STOP scope.md: allowed target must be loopback");
   }
 
   const source = read(root, "cves/CVE-2021-41773/sources/source-map.md", issues);
@@ -75,7 +77,8 @@ function checkD2(root) {
   const observation = readJson(root, observationPath, issues);
   const compose = read(root, composePath, issues);
 
-  if (!isLoopbackTarget(control.target)) issues.push(controlPath + ": target must be loopback");
+  if (!control.target) issues.push(controlPath + ": target required");
+  else if (!isLoopbackTarget(control.target)) issues.push("STOP " + controlPath + ": target must be loopback");
   if (control.decision !== "GO") issues.push(controlPath + ": explicit GO required");
   if (!control.cleanup || control.cleanup === "UNSET") issues.push(controlPath + ": cleanup required");
   if (!Number.isInteger(control.timeout_seconds) || control.timeout_seconds < 1) {
@@ -94,10 +97,14 @@ function checkD2(root) {
   if (!Number.isInteger(observation.exit_code)) {
     issues.push(observationPath + ": integer exit_code required");
   }
+  for (const field of ["input_sha256", "request_sha256", "criteria_sha256"]) {
+    if (!observation[field] || observation[field] === "UNSET") {
+      issues.push(observationPath + ": " + field + " required");
+    } else if (!/^[a-f0-9]{64}$/i.test(observation[field])) {
+      issues.push(observationPath + ": " + field + " must be a SHA-256 hex digest");
+    }
+  }
   for (const field of [
-    "input_sha256",
-    "request_sha256",
-    "criteria_sha256",
     "stdout_ref",
     "stderr_ref",
     "request_ref",
@@ -110,10 +117,13 @@ function checkD2(root) {
     }
   }
 
-  if (/privileged:\s*true/i.test(compose)) issues.push(composePath + ": privileged forbidden");
-  if (/network_mode:\s*host/i.test(compose)) issues.push(composePath + ": host network forbidden");
-  if (/0\.0\.0\.0:/.test(compose)) issues.push(composePath + ": non-loopback bind forbidden");
-  if (/\/var\/run\/docker\.sock/.test(compose)) issues.push(composePath + ": Docker socket forbidden");
+  if (/privileged:\s*true/i.test(compose)) issues.push("STOP " + composePath + ": privileged forbidden");
+  if (/network_mode:\s*host/i.test(compose)) issues.push("STOP " + composePath + ": host network forbidden");
+  if (/0\.0\.0\.0:/.test(compose)) issues.push("STOP " + composePath + ": non-loopback bind forbidden");
+  if (/\/var\/run\/docker\.sock/.test(compose)) issues.push("STOP " + composePath + ": Docker socket forbidden");
+  if (compose && !/image:\s*\S+@sha256:[a-f0-9]{64}/i.test(compose)) {
+    issues.push(composePath + ": immutable image digest required");
+  }
   return issues;
 }
 
@@ -174,4 +184,10 @@ export function checkDay(root, day) {
   if (day === "D2") return checkD2(root);
   if (day === "D3") return checkD3(root);
   return ["unsupported day: " + day];
+}
+
+export function classifyDecision(issues) {
+  if (!issues.length) return "GO";
+  if (issues.some((issue) => issue.startsWith("STOP "))) return "STOP";
+  return "REVISE";
 }
