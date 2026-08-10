@@ -113,8 +113,61 @@ function checkD2(root) {
   return issues;
 }
 
+function reportEvidenceRefs(report) {
+  return [...report.matchAll(/\[evidence:([A-Z0-9-]+)\]/g)].map((match) => match[1]);
+}
+
+function checkD3(root) {
+  const issues = [];
+  const vulnerablePath = "cves/CVE-2021-41773/execution/vulnerable.json";
+  const patchedPath = "cves/CVE-2021-41773/execution/patched.json";
+  const indexPath = "cves/CVE-2021-41773/evidence/index.json";
+  const reportPath = "cves/CVE-2021-41773/report.md";
+  const vulnerable = readJson(root, vulnerablePath, issues);
+  const patched = readJson(root, patchedPath, issues);
+  const index = readJson(root, indexPath, issues);
+  const report = read(root, reportPath, issues);
+
+  for (const field of [
+    "control_id",
+    "input_sha256",
+    "request_sha256",
+    "criteria_sha256",
+    "matcher"
+  ]) {
+    if (!vulnerable[field] || vulnerable[field] !== patched[field]) {
+      issues.push("same-control: " + field + " mismatch");
+    }
+  }
+
+  const entries = Array.isArray(index.entries) ? index.entries : [];
+  const byId = new Map(entries.map((entry) => [entry.evidence_id, entry]));
+  for (const entry of entries) {
+    if (entry.preserve_in_trace !== true) {
+      issues.push(indexPath + ": " + entry.evidence_id + " preserve_in_trace must be true");
+    }
+  }
+
+  const refs = reportEvidenceRefs(report);
+  if (!refs.length) issues.push(reportPath + ": at least one [evidence:ID] required");
+  for (const ref of refs) {
+    const entry = byId.get(ref);
+    if (!entry) issues.push(reportPath + ": missing evidence " + ref);
+    else if (entry.report_eligible !== true) {
+      issues.push(reportPath + ": " + ref + " report_eligible must be true");
+    }
+  }
+
+  const reuse = read(root, "cves/CVE-2021-41773/retrospective/reuse-check.md", issues);
+  requireText(reuse, "reuse-check.md", ["Blocker:", "Harness 변경:", "다음 CVE:"], issues);
+  const changelog = read(root, "harness/CHANGELOG.md", issues);
+  requireText(changelog, "CHANGELOG.md", ["v1", "실패 Ref:", "재실행:"], issues);
+  return issues;
+}
+
 export function checkDay(root, day) {
   if (day === "D1") return checkD1(root);
   if (day === "D2") return checkD2(root);
+  if (day === "D3") return checkD3(root);
   return ["unsupported day: " + day];
 }

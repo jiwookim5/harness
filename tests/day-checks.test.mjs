@@ -109,3 +109,79 @@ test("D2 rejects unsafe Compose settings", () => {
   assert.ok(issues.some((issue) => issue.includes("privileged")));
   assert.ok(issues.some((issue) => issue.includes("host network")));
 });
+
+const vulnerableObservation = {
+  observation_id: "OBS-VULNERABLE",
+  control_id: "CTL-SAME-001",
+  environment: "vulnerable",
+  target: "127.0.0.1:8080",
+  input_sha256: "c".repeat(64),
+  request_sha256: "d".repeat(64),
+  criteria_sha256: "e".repeat(64),
+  matcher: "marker-and-log",
+  exit_code: 0,
+  cleanup_result: "PASS"
+};
+
+const patchedObservation = {
+  ...vulnerableObservation,
+  observation_id: "OBS-PATCHED",
+  environment: "patched",
+  target: "127.0.0.1:8081",
+  exit_code: 1
+};
+
+const d3Files = {
+  "cves/CVE-2021-41773/execution/vulnerable.json": JSON.stringify(vulnerableObservation),
+  "cves/CVE-2021-41773/execution/patched.json": JSON.stringify(patchedObservation),
+  "cves/CVE-2021-41773/evidence/index.json": JSON.stringify({
+    cve_id: "CVE-2021-41773",
+    entries: [
+      {
+        evidence_id: "EVID-001",
+        review_status: "ACCEPTED",
+        report_eligible: true,
+        preserve_in_trace: true
+      },
+      {
+        evidence_id: "EVID-002",
+        review_status: "REJECTED",
+        report_eligible: false,
+        preserve_in_trace: true
+      }
+    ]
+  }),
+  "cves/CVE-2021-41773/report.md":
+    "# Report\n검토된 결과 [evidence:EVID-001]\n기각 기록은 Trace에 보존한다.\n",
+  "cves/CVE-2021-41773/retrospective/reuse-check.md":
+    "# Reuse\nBlocker: Matcher 설명 누락\nHarness 변경: Report Gate 추가\n다음 CVE: 공통 Gate 재사용\n",
+  "harness/CHANGELOG.md":
+    "# Harness Changelog\nv1\n실패 Ref: OBS-PATCHED\n변경: Report Gate\n재실행: PASS\n"
+};
+
+test("D3 is GO for same-control retest and eligible report evidence", () => {
+  assert.deepEqual(checkDay(fixture(d3Files), "D3"), []);
+});
+
+test("D3 rejects a changed matcher", () => {
+  const files = { ...d3Files };
+  const patched = { ...patchedObservation, matcher: "status-only" };
+  files["cves/CVE-2021-41773/execution/patched.json"] = JSON.stringify(patched);
+  assert.ok(checkDay(fixture(files), "D3").some((issue) => issue.includes("matcher")));
+});
+
+test("D3 rejects report references to ineligible evidence", () => {
+  const files = {
+    ...d3Files,
+    "cves/CVE-2021-41773/report.md": "# Report\n[evidence:EVID-002]\n"
+  };
+  assert.ok(checkDay(fixture(files), "D3").some((issue) => issue.includes("report_eligible")));
+});
+
+test("D3 preserves rejected and unknown evidence in the trace", () => {
+  const files = { ...d3Files };
+  const index = JSON.parse(files["cves/CVE-2021-41773/evidence/index.json"]);
+  index.entries[1].preserve_in_trace = false;
+  files["cves/CVE-2021-41773/evidence/index.json"] = JSON.stringify(index);
+  assert.ok(checkDay(fixture(files), "D3").some((issue) => issue.includes("preserve_in_trace")));
+});
