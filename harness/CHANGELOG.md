@@ -31,3 +31,19 @@
   다음 CVE 재사용 영향: 앞으로 pinned 설정 파일명은 `.env`류를 피해야 함
 - 재실행: 위 두 Blocker 모두 같은 Control ID, 같은 명령으로 재실행해 결과가 이전과 동일함을 확인했다.
 - 상세 근거: `cves/CVE-2021-41773/retrospective/reuse-check.md`
+
+## v1.2 (신규 CVE-2021-43798 착수, 2026-08-12)
+
+- 실패 Ref: `npm run check -- D1 CVE-2021-43798`을 처음 시도하려 했으나 그 전에
+  `scripts/lib/checks.mjs`가 `cves/CVE-2021-41773/...` 경로를 하드코딩하고 있어서
+  CVE-2021-41773 외의 어떤 CVE 워크스페이스도 Gate 검증이 불가능했음을 코드 확인으로 발견
+  원인: D1/D2/D3 검사 함수(`checkD1`/`checkD2`/`checkD3`)와 `check-day.mjs` CLI가 CVE ID를
+  매개변수화하지 않고 practice CVE 하나만 가정하고 작성됨
+  변경 위치: `scripts/lib/checks.mjs`(세 함수 + `checkDay`에 `cveId` 매개변수, 기본값
+  `CVE-2021-41773`으로 하위 호환 유지), `scripts/check-day.mjs`(두 번째 CLI 인자로 CVE ID
+  수신, `npm run check -- D1 CVE-xxxx-xxxxx` 형태로 확장)
+  재실행: `npm test`(회귀, 34/34 그대로 통과), `npm run check -- D1`(CVE-2021-41773 기본값,
+  여전히 GO), `npm run check -- D1 CVE-2021-43798`(신규 워크스페이스, 스캐폴드가 비어 있어
+  REVISE 11건 — 이 REVISE 자체가 검증기가 이제 정상적으로 신규 CVE를 읽고 있다는 증거)
+  다음 CVE 재사용 영향: 앞으로 모든 신규 CVE는 `npm run check -- D1|D2|D3 <CVE-ID>`로 Gate를
+  즉시 확인할 수 있음 — CVE마다 검증기를 다시 만들 필요 없음

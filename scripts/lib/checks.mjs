@@ -24,7 +24,7 @@ function checkFacts(content, label, issues) {
   }
 }
 
-function checkD1(root) {
+function checkD1(root, cveId) {
   const issues = [];
   const scope = read(root, "scope.md", issues);
   requireText(scope, "scope.md", ["localhost", "STOP", "Cleanup"], issues);
@@ -35,19 +35,19 @@ function checkD1(root) {
     issues.push("STOP scope.md: allowed target must be loopback");
   }
 
-  const source = read(root, "cves/CVE-2021-41773/sources/source-map.md", issues);
+  const source = read(root, `cves/${cveId}/sources/source-map.md`, issues);
   if (!/https?:\/\//.test(source) && !/[a-f0-9]{7,40}/.test(source)) {
     issues.push("source-map.md: URL or commit required");
   }
 
-  const rootCause = read(root, "cves/CVE-2021-41773/analysis/root-cause.md", issues);
+  const rootCause = read(root, `cves/${cveId}/analysis/root-cause.md`, issues);
   requireText(rootCause, "root-cause.md", ["FACT:", "INFERENCE:", "UNKNOWN:", "반증 조건"], issues);
   checkFacts(rootCause, "root-cause.md", issues);
 
-  const cwe = read(root, "cves/CVE-2021-41773/analysis/cwe.md", issues);
+  const cwe = read(root, `cves/${cveId}/analysis/cwe.md`, issues);
   requireText(cwe, "cwe.md", ["후보:", "근거:", "반증 조건"], issues);
 
-  const intake = read(root, "cves/CVE-2021-41773/intake.md", issues);
+  const intake = read(root, `cves/${cveId}/intake.md`, issues);
   if (/CVE ID:\s*UNSET/.test(intake) || /제품:\s*UNSET/.test(intake)) {
     issues.push("intake.md: placeholder not filled (CVE ID/제품 still UNSET)");
   }
@@ -73,11 +73,11 @@ function isLoopbackTarget(value) {
   return /^(localhost|127\.0\.0\.1)(:\d{1,5})?$/.test(String(value));
 }
 
-function checkD2(root) {
+function checkD2(root, cveId) {
   const issues = [];
-  const controlPath = "cves/CVE-2021-41773/execution/control.json";
-  const observationPath = "cves/CVE-2021-41773/execution/observation.json";
-  const composePath = "cves/CVE-2021-41773/lab/compose.yaml";
+  const controlPath = `cves/${cveId}/execution/control.json`;
+  const observationPath = `cves/${cveId}/execution/observation.json`;
+  const composePath = `cves/${cveId}/lab/compose.yaml`;
   const control = readJson(root, controlPath, issues);
   const observation = readJson(root, observationPath, issues);
   const compose = read(root, composePath, issues);
@@ -136,12 +136,12 @@ function reportEvidenceRefs(report) {
   return [...report.matchAll(/\[evidence:([A-Z0-9-]+)\]/g)].map((match) => match[1]);
 }
 
-function checkD3(root) {
+function checkD3(root, cveId) {
   const issues = [];
-  const vulnerablePath = "cves/CVE-2021-41773/execution/vulnerable.json";
-  const patchedPath = "cves/CVE-2021-41773/execution/patched.json";
-  const indexPath = "cves/CVE-2021-41773/evidence/index.json";
-  const reportPath = "cves/CVE-2021-41773/report.md";
+  const vulnerablePath = `cves/${cveId}/execution/vulnerable.json`;
+  const patchedPath = `cves/${cveId}/execution/patched.json`;
+  const indexPath = `cves/${cveId}/evidence/index.json`;
+  const reportPath = `cves/${cveId}/report.md`;
   const vulnerable = readJson(root, vulnerablePath, issues);
   const patched = readJson(root, patchedPath, issues);
   const index = readJson(root, indexPath, issues);
@@ -177,17 +177,17 @@ function checkD3(root) {
     }
   }
 
-  const reuse = read(root, "cves/CVE-2021-41773/retrospective/reuse-check.md", issues);
+  const reuse = read(root, `cves/${cveId}/retrospective/reuse-check.md`, issues);
   requireText(reuse, "reuse-check.md", ["Blocker:", "Harness 변경:", "다음 CVE:"], issues);
   const changelog = read(root, "harness/CHANGELOG.md", issues);
   requireText(changelog, "CHANGELOG.md", ["v1", "실패 Ref:", "재실행:"], issues);
   return issues;
 }
 
-export function checkDay(root, day) {
-  if (day === "D1") return checkD1(root);
-  if (day === "D2") return checkD2(root);
-  if (day === "D3") return checkD3(root);
+export function checkDay(root, day, cveId = "CVE-2021-41773") {
+  if (day === "D1") return checkD1(root, cveId);
+  if (day === "D2") return checkD2(root, cveId);
+  if (day === "D3") return checkD3(root, cveId);
   return ["unsupported day: " + day];
 }
 
