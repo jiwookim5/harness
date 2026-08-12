@@ -93,3 +93,46 @@
   다음 CVE 재사용 영향: 앞으로 Same-Control Observation은 취약/조치 두 Target 모두
   정식 스키마로 남기고, Source 접근이 한 번이라도 실패하면 그 URL·이유·대체 경로를
   source-map.md에 바로 기록한다
+
+## v1.5 (불명확한 성공 Matcher, 2026-08-12)
+
+- 실패 Ref: CVE-2021-43798의 `execution/control.json`/`observation.json`이
+  `VULNERABLE_MATCH`/`PATCHED_BLOCK`라는 라벨을 쓰는데, `vulnerable.json`/`patched.json`은
+  같은 검사를 `TRAVERSAL_MARKER_CHECK`라는 다른 이름으로 부르고 있었고, 이 라벨들이 실제로
+  무엇을 검사하는지(HTTP 코드? marker 문자열?)를 코드나 문서 어디에도 정의하지 않았음.
+  `run-ctl-d2-http-001.sh`는 curl 결과(HTTP 코드, 응답 본문)를 출력만 했고, marker 문자열이
+  실제로 있는지는 사람이 눈으로 읽고 성공/실패를 판단했음 — 판정 로직이 코드로 존재하지 않았음
+  원인: matcher 이름을 지을 때 "무엇을 검사하는가(공유 검사 이름)"와 "그 검사가 낼 수 있는
+  기대 결과 라벨"을 구분하지 않고 섞어 씀. 판정 자체를 자동화하지 않고 사람이 대신함
+  변경 위치: `cves/CVE-2021-43798/lab/run-ctl-d2-http-001.sh`(marker 문자열을 `grep`으로
+  확인해 `MATCHER=TRAVERSAL_MARKER_CHECK LABEL=<VULNERABLE_MATCH|PATCHED_BLOCK|INDETERMINATE>
+  VERDICT=<MATCH|NO_MATCH>`를 자동 출력하도록 추가), `evidence/same-control-check.md`("Matcher
+  정의" 절 추가, 두 이름 체계의 관계 설명), `report.html`(Same-Control 표에 Matcher 판정 열 추가)
+  재실행: `GO CTL-D2-HTTP-001`로 재실행 → 8300=`LABEL=VULNERABLE_MATCH VERDICT=MATCH`,
+  8301=`LABEL=PATCHED_BLOCK VERDICT=MATCH` — 이전 수기 판단과 동일한 결과를 이번엔 코드가
+  직접 확인함. `npm test` 34/34, D1/D2/D3 GO 유지
+  다음 CVE 재사용 영향: 앞으로 Same-Control 스크립트는 marker/matcher 판정을 사람이 읽고
+  결정하지 말고 `grep` 등으로 코드가 직접 판정해서 출력해야 함. CVE-2021-41773의
+  `run-ctl-d2-http-001.sh`/`run-ctl-d2-http-003.sh`에는 아직 미적용 — 다음에 적용 필요
+
+## v1.6 (반복적인 수작업 — 손으로 중복 입력된 해시, 2026-08-12)
+
+- 실패 Ref: v1.5를 만들던 중 `input_sha256`/`request_sha256`/`criteria_sha256`이
+  `execution/vulnerable.json`, `execution/patched.json`, `execution/observation.json`,
+  `execution/observation-patched.json`, `evidence/index.json`(entry 2개) 총 6곳에
+  손으로 중복 입력돼 있는 걸 발견함(`grep | sort | uniq -c`로 실제 카운트 확인). 이
+  중복이 v1.5에서 고친 Matcher 이름 불일치가 아무 자동 검사도 없이 조용히 발생할 수
+  있었던 근본 원인이었음
+  원인: Observation/Same-Control 관련 JSON 파일을 4~6개로 나눠 만들면서, 각 파일을
+  손으로 작성할 때마다 같은 해시값을 그대로 옮겨 적었고, 파일들 사이의 일치 여부를
+  검사하는 자동화가 전혀 없었음
+  변경 위치: `scripts/lib/checks.mjs`에 `checkExecutionConsistency()` 추가,
+  `checkD3()`에서 `execution/vulnerable.json`·`patched.json`·`observation.json`·
+  `observation-patched.json`(존재하는 파일만) 사이의 세 해시값이 전부 같은지 자동 대조
+  재실행: `npm test`(34/34), `npm run check -- D3`(두 CVE 모두 GO). 검사가 실제로
+  작동하는지 확인하려고 `observation-patched.json`의 `input_sha256` 앞 8자를
+  `deadbeef`로 일부러 바꾼 뒤 재실행 → `REVISE execution consistency: input_sha256
+  differs across ...` 정확히 잡힘. 원상복구 후 다시 GO 확인
+  다음 CVE 재사용 영향: 앞으로 Observation류 JSON 파일을 여러 개 만드는 CVE는 이
+  자동 대조를 그대로 통과해야 하므로, 해시값을 손으로 옮겨 적다가 생기는 오타/누락이
+  Gate 단계에서 바로 걸러짐

@@ -138,6 +138,36 @@ function reportEvidenceRefs(report) {
   return [...report.matchAll(/\[evidence:([A-Z0-9-]+)\]/g)].map((match) => match[1]);
 }
 
+function checkExecutionConsistency(root, cveId, vulnerable, patched, issues) {
+  // input/request/criteria_sha256 tend to get hand-copied across
+  // vulnerable.json, patched.json, observation.json and
+  // observation-patched.json. Nothing used to cross-check those copies
+  // against each other, which is exactly how a manual mismatch (e.g. the
+  // matcher naming drift found in CVE-2021-43798) could slip through
+  // unnoticed. This checks every one of the four that exists.
+  const docs = { "execution/vulnerable.json": vulnerable, "execution/patched.json": patched };
+  const optional = {
+    "execution/observation.json": `cves/${cveId}/execution/observation.json`,
+    "execution/observation-patched.json": `cves/${cveId}/execution/observation-patched.json`
+  };
+  for (const [key, relative] of Object.entries(optional)) {
+    const file = resolve(root, relative);
+    if (!existsSync(file)) continue;
+    try {
+      docs[key] = JSON.parse(readFileSync(file, "utf8"));
+    } catch {
+      issues.push(relative + ": invalid JSON");
+    }
+  }
+  const present = Object.keys(docs).filter((k) => docs[k] && Object.keys(docs[k]).length);
+  for (const field of ["input_sha256", "request_sha256", "criteria_sha256"]) {
+    const values = new Set(present.map((k) => docs[k][field]).filter(Boolean));
+    if (values.size > 1) {
+      issues.push(`execution consistency: ${field} differs across ${present.join(", ")}`);
+    }
+  }
+}
+
 function checkD3(root, cveId) {
   const issues = [];
   const vulnerablePath = `cves/${cveId}/execution/vulnerable.json`;
@@ -160,6 +190,8 @@ function checkD3(root, cveId) {
       issues.push("same-control: " + field + " mismatch");
     }
   }
+
+  checkExecutionConsistency(root, cveId, vulnerable, patched, issues);
 
   const entries = Array.isArray(index.entries) ? index.entries : [];
   const byId = new Map(entries.map((entry) => [entry.evidence_id, entry]));
