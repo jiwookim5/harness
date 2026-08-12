@@ -29,6 +29,13 @@
   transport 실패와 대상의 정상적인 403/404 차단을 같은 결과로 취급하지 않는다.
 - **실행 환경을 직접 기록한다.** Image digest는 태그를 다시 조회하지 않고 실제 실행 중인
   container의 image에서 확인한다.
+- **Lab 실행 스크립트는 macOS 기본 bash(3.2)와 호환되게 작성한다.** 연관 배열(`declare -A`)은
+  Bash 4+ 기능이라 macOS 기본 `/usr/bin/bash`에서 실패한다. Digest/버전 매핑처럼 key-value가
+  필요하면 `case` 문을 쓴다. (CVE-2021-41773 D2, reuse-check.md Blocker 1)
+- **시크릿이 아닌 pinned 설정값은 `.env`/`.env.*` 이름을 피한다.** 저장소 전역 `.gitignore`가
+  이 패턴을 시크릿 방지용으로 차단하므로, image digest처럼 공개값만 담은 파일은 별도 이름
+  (예: `digests.env`)을 쓰고 compose/스크립트에서 `--env-file`로 명시 참조한다.
+  (CVE-2021-41773 D2, reuse-check.md Blocker 2)
 
 ## STOP 조건
 

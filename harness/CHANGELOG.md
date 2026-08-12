@@ -16,3 +16,18 @@
 - live Raw Evidence가 전체 패키징 테스트를 오염시키지 않도록 현재 commit의 clean clone에서
   배포 패키징 테스트를 수행한다.
 - 강의용 masked log는 추적할 수 있지만 raw log는 계속 Git에서 제외한다.
+
+## v1.1 (CVE-2021-41773 D2 리허설, 2026-08-12)
+
+- 실패 Ref: `run-ctl-d2-http-001.sh` 첫 실행, `bad array subscript` (exit 1, Target 영향 없음)
+  원인: macOS 기본 bash(3.2)가 `declare -A` 미지원
+  변경 위치: `harness/policies/invariants.md` "재사용 패턴"에 bash 3.2 호환 항목 추가
+  같은 입력 재실행 결과: `case` 문으로 재작성 후 동일 Control ID로 재실행 — digest 검증·healthcheck·traversal 결과 이전과 동일
+  다음 CVE 재사용 영향: 이후 모든 Lab 스크립트가 이 제약을 전제해야 함
+- 실패 Ref: REVISE #3(digest 이중 관리 정리) 처리 중 `lab/.env`가 `git status`에 안 잡힘
+  원인: 저장소 전역 `.gitignore`의 `.env`/`.env.*` 규칙이 시크릿 아닌 값도 차단
+  변경 위치: `harness/policies/invariants.md`에 "시크릿 아닌 pinned 값은 `.env`류 이름 회피" 항목 추가; 실제 CVE 작업공간은 `lab/.env` → `lab/digests.env`로 변경
+  같은 입력 재실행 결과: `--env-file digests.env`로 재실행 — 이전과 동일 결과, `git check-ignore` 통과 확인
+  다음 CVE 재사용 영향: 앞으로 pinned 설정 파일명은 `.env`류를 피해야 함
+- 재실행: 위 두 Blocker 모두 같은 Control ID, 같은 명령으로 재실행해 결과가 이전과 동일함을 확인했다.
+- 상세 근거: `cves/CVE-2021-41773/retrospective/reuse-check.md`
