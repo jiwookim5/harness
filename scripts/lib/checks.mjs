@@ -18,8 +18,9 @@ function requireText(content, label, terms, issues) {
 
 function checkFacts(content, label, issues) {
   for (const line of content.split("\n")) {
-    if (line.trim().startsWith("FACT:") && !/\[SRC-\d+\]/.test(line)) {
-      issues.push(label + ": FACT requires [SRC-NNN]");
+    const trimmed = line.trim();
+    if (/^-?\s*FACT:/.test(trimmed) && !/\[(SRC|CLAIM|CLM)-\d+[a-zA-Z]?\]/.test(trimmed)) {
+      issues.push(label + ": FACT requires [SRC-NNN] or [CLAIM-NNN]/[CLM-NNN]");
     }
   }
 }
@@ -46,6 +47,7 @@ function checkD1(root, cveId) {
 
   const cwe = read(root, `cves/${cveId}/analysis/cwe.md`, issues);
   requireText(cwe, "cwe.md", ["후보:", "근거:", "반증 조건"], issues);
+  checkFacts(cwe, "cwe.md", issues);
 
   const intake = read(root, `cves/${cveId}/intake.md`, issues);
   if (/CVE ID:\s*UNSET/.test(intake) || /제품:\s*UNSET/.test(intake)) {

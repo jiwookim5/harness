@@ -47,3 +47,26 @@
   REVISE 11건 — 이 REVISE 자체가 검증기가 이제 정상적으로 신규 CVE를 읽고 있다는 증거)
   다음 CVE 재사용 영향: 앞으로 모든 신규 CVE는 `npm run check -- D1|D2|D3 <CVE-ID>`로 Gate를
   즉시 확인할 수 있음 — CVE마다 검증기를 다시 만들 필요 없음
+
+## v1.3 (FACT 출처 검사 사각지대 발견, 2026-08-12)
+
+- 실패 Ref: `harness/validators/`에 "Source 없는 FACT를 잡는다"는 의도만 README로 적혀 있고
+  실제 코드가 없어서, `harness/validators/`에는 문서만 있고 로직은
+  `scripts/lib/checks.mjs`의 `checkFacts()`에 있다는 걸 재확인. 이 함수 자체도 다시 읽어보니
+  `line.trim().startsWith("FACT:")`로 검사하고 있었는데, 실제 `root-cause.md`/`cwe.md`의 모든
+  FACT 줄은 마크다운 bullet(`- FACT: ...`)로 시작해서 `"- FACT:".startsWith("FACT:")`가 항상
+  false — 이 검사기는 만들어진 이후 실제 파일에서 단 한 번도 작동한 적이 없었음. 정규식
+  `/\[SRC-\d+\]/`도 `[SRC-003a]`처럼 문자 접미사가 붙은 실제 Source Ref는 매칭 안 됐음
+  원인: (1) `checkFacts()`가 cwe.md에는 아예 호출되지 않고 root-cause.md에만 적용됨,
+  (2) 줄 시작 검사가 마크다운 bullet 형식을 고려 안 함, (3) 정규식이 `[SRC-NNN]`만 인정하고
+  `[CLAIM-NNN]`/`[CLM-NNN]` 인용은 통과시키지 못함(지금은 안 쓰지만 구조적으로 뚫려 있었음)
+  변경 위치: `scripts/lib/checks.mjs` — `checkFacts()`의 줄 매칭을 `/^-?\s*FACT:/`로,
+  Source 정규식을 `/\[(SRC|CLAIM|CLM)-\d+[a-zA-Z]?\]/`로 확장, `checkD1()`에서
+  `checkFacts(cwe, "cwe.md", issues)` 호출 추가
+  재실행: `npm test`(회귀, 34/34 그대로 통과), `npm run check -- D1`/`D1 CVE-2021-43798`(둘 다
+  여전히 GO — 실제 FACT 줄에 이미 [SRC-NNN] 출처가 다 있었으므로). 이후 `cwe.md`에 출처 없는
+  FACT 한 줄과 `[CLAIM-002]`만 인용한 FACT 한 줄을 임시로 추가해 재검증 → 출처 없는 줄만
+  REVISE 1건으로 정확히 잡히고 CLAIM 인용 줄은 통과함을 확인, 두 테스트 줄 모두 제거 후 GO로
+  복귀
+  다음 CVE 재사용 영향: 앞으로 모든 신규 CVE의 root-cause.md·cwe.md는 FACT 줄마다 `[SRC-NNN]`
+  또는 `[CLAIM-NNN]`/`[CLM-NNN]` 출처가 있어야 Gate를 통과함 — 두 파일 모두 실제로 검사됨
