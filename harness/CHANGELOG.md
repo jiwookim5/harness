@@ -70,3 +70,26 @@
   복귀
   다음 CVE 재사용 영향: 앞으로 모든 신규 CVE의 root-cause.md·cwe.md는 FACT 줄마다 `[SRC-NNN]`
   또는 `[CLAIM-NNN]`/`[CLM-NNN]` 출처가 있어야 Gate를 통과함 — 두 파일 모두 실제로 검사됨
+
+## v1.4 (report.html 재검토 중 발견, 2026-08-12)
+
+- 실패 Ref: CVE-2021-43798의 `report.html`을 다시 검토하다가 두 가지를 발견함.
+  (1) `execution/observation.json`이 취약한 Target(8300)만 harness 표준 Observation
+  스키마로 남기고, 조치된 Target(8301)은 더 가벼운 `evidence/index.json`/`patched.json`
+  형식에만 있어서 두 CVE 모두 "조치 쪽 Observation"이 정식 형식으로는 없었음.
+  (2) `harness/prompts/source-map-prompt.md`가 "실패한 URL과 대체 경로도 기록"을
+  요구하는데, `cve.org` 동적 페이지 Fetch가 실패해서 CVEProject raw JSON으로 우회한
+  사실이 CVE-2021-43798의 `source-map.md` 어디에도 안 남아 있었음
+  원인: (1) Observation 템플릿을 취약/조치 Same-Control 쌍이 아니라 Control당 하나만
+  만들면 되는 것으로 오해하고 작업함, (2) source-map-prompt.md의 "접근 실패 기록"
+  요구사항을 D1 작업 중 누락함
+  변경 위치: `cves/CVE-2021-41773/execution/observation-patched.json`,
+  `cves/CVE-2021-43798/execution/observation-patched.json`(조치 Target용 신규 Observation
+  추가), `cves/CVE-2021-43798/sources/source-map.md`(접근 실패 기록 절 추가),
+  `cves/CVE-2021-43798/report.html`(Source Map·Evidence·Harness 개선 섹션에 반영)
+  재실행: `npm test`(34/34), `npm run check -- D1/D2/D3`(두 CVE 모두 여전히 GO —
+  `observation-patched.json`은 checkD2가 읽는 고정 경로가 아니라 보완용 파일이라
+  Gate 판정에 영향 없음)
+  다음 CVE 재사용 영향: 앞으로 Same-Control Observation은 취약/조치 두 Target 모두
+  정식 스키마로 남기고, Source 접근이 한 번이라도 실패하면 그 URL·이유·대체 경로를
+  source-map.md에 바로 기록한다
