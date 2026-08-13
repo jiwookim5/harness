@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>내 손으로 취약점 분석 도구를 만들고 써본 하루</title>
+<style>
+  :root {
+    --ink: #171b22;
+    --ink-soft: #3a4150;
+    --paper: #f7f4ec;
+    --paper-raised: #fffdf7;
+    --line: #ddd6c5;
+    --accent: #a15a2c;
+    --accent-soft: #f0e2d3;
+    --danger: #a3402f;
+    --danger-soft: #f6e2dd;
+    --safe: #2f7a63;
+    --safe-soft: #e1efe9;
+    --mono-bg: #efe9da;
+    --shadow: 0 1px 2px rgba(23, 27, 34, 0.06);
+  }
+
+  :root[data-theme="dark"] {
+    --ink: #eae6db; --ink-soft: #b6b0a0; --paper: #14171d; --paper-raised: #1b1f27;
+    --line: #303543; --accent: #d3925f; --accent-soft: #3a2c22; --danger: #e08876;
+    --danger-soft: #3b2320; --safe: #7cc7ac; --safe-soft: #1c332c; --mono-bg: #1f232c;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #eae6db; --ink-soft: #b6b0a0; --paper: #14171d; --paper-raised: #1b1f27;
+      --line: #303543; --accent: #d3925f; --accent-soft: #3a2c22; --danger: #e08876;
+      --danger-soft: #3b2320; --safe: #7cc7ac; --safe-soft: #1c332c; --mono-bg: #1f232c;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+    font-size: 17px; line-height: 1.8; -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Noto Serif KR", serif;
+    color: var(--ink); text-wrap: balance; font-weight: 600;
+  }
+
+  code { font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace; font-size: 0.9em; }
+  a { color: var(--accent); }
+
+  .wrap { max-width: 700px; margin: 0 auto; padding: 64px 24px 120px; }
+
+  header.hero { margin-bottom: 56px; }
+  .eyebrow {
+    text-transform: uppercase; letter-spacing: 0.12em; font-size: 12px;
+    color: var(--ink-soft); margin: 0 0 14px; font-weight: 600;
+  }
+  header.hero h1 { font-size: clamp(28px, 5vw, 38px); line-height: 1.32; margin-bottom: 18px; }
+  header.hero .intro { font-size: 18px; color: var(--ink-soft); line-height: 1.75; }
+
+  .roadmap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 26px;
+  }
+  .roadmap span {
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+  }
+  .roadmap span.done { color: var(--safe); border-color: var(--safe); background: var(--safe-soft); }
+
+  .chapter { margin: 68px 0; }
+  .chapter-tag {
+    display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
+    color: var(--accent); background: var(--accent-soft);
+    padding: 4px 12px; border-radius: 999px; margin-bottom: 16px;
+  }
+  .chapter h2 { font-size: clamp(23px, 4vw, 29px); margin: 0 0 22px; }
+  .chapter p { margin: 15px 0; }
+  .chapter h3 {
+    font-family: -apple-system, sans-serif; font-size: 15.5px; font-weight: 700;
+    color: var(--ink-soft); margin: 30px 0 8px;
+  }
+
+  .analogy {
+    background: var(--paper-raised); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: 6px; padding: 15px 19px; margin: 16px 0; box-shadow: var(--shadow);
+  }
+  .analogy .label {
+    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--accent); margin-bottom: 6px; display: block;
+  }
+  .analogy p { margin: 0; font-size: 15px; }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 12px;
+    margin: 20px 0;
+  }
+  .stat-card {
+    background: var(--paper-raised); border: 1px solid var(--line); border-radius: 8px;
+    padding: 16px 14px; text-align: center;
+  }
+  .stat-card .num {
+    font-family: ui-monospace, monospace; font-size: 26px; font-weight: 700; color: var(--accent);
+    display: block;
+  }
+  .stat-card .label { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+
+  .result-box {
+    background: var(--safe-soft); border: 1px solid var(--safe); border-radius: 6px;
+    padding: 13px 17px; margin: 14px 0; font-size: 14.5px;
+  }
+  .result-box .label {
+    color: var(--safe); font-weight: 700; font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.05em; display: block; margin-bottom: 5px;
+  }
+
+  .compare-table {
+    width: 100%; border-collapse: collapse; font-size: 14px; margin: 18px 0;
+    background: var(--paper-raised); border: 1px solid var(--line); border-radius: 6px; overflow: hidden;
+  }
+  .compare-table th, .compare-table td {
+    text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top;
+  }
+  .compare-table thead th {
+    background: var(--mono-bg); font-weight: 700; font-size: 11.5px; color: var(--ink-soft);
+  }
+  .compare-table tbody tr:last-child td { border-bottom: none; }
+
+  .issue-list { list-style: none; margin: 18px 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .issue-list li {
+    background: var(--paper-raised); border: 1px solid var(--line); border-radius: 6px;
+    padding: 12px 16px; font-size: 14.5px;
+  }
+  .issue-list .tag {
+    display: inline-block; font-size: 11px; font-weight: 700; color: var(--accent);
+    background: var(--accent-soft); border-radius: 999px; padding: 1px 8px; margin-right: 8px;
+  }
+
+  .divider { border: none; border-top: 1px solid var(--line); margin: 68px 0; }
+
+  .closing { margin-top: 76px; padding-top: 30px; border-top: 3px solid var(--ink); }
+  .closing p { font-size: 16.5px; }
+
+  footer { margin-top: 56px; color: var(--ink-soft); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow">보안 초심자의 기록</p>
+    <h1>내 손으로 취약점 분석 도구를 만들고, 실제로 써본 하루</h1>
+    <p class="intro">
+      보안 취약점(CVE)을 조사할 때 "AI가 그럴듯하게 말한 것"과 "실제로 확인된 것"을
+      구분하지 못하면 아무 의미가 없다. 그래서 오늘은 이 둘을 억지로라도 분리해주는
+      나만의 조사 도구(harness)를 만들고, 그 도구로 진짜 취약점 두 개를 직접 조사해봤다.
+      이 글은 그 하루를 순서대로 정리한 것이다.
+    </p>
+    <div class="roadmap">
+      <span class="done">✓ 도구 만들기</span>
+      <span class="done">✓ 취약점 1 조사</span>
+      <span class="done">✓ 도구 재사용해서 취약점 2 조사</span>
+      <span class="done">✓ 도구 자체의 문제 6개 발견·수정</span>
+      <span class="done">✓ 결과 정리</span>
+    </div>
+  </header>
+
+  <section class="chapter">
+    <span class="chapter-tag">시작하며</span>
+    <h2>왜 이런 도구가 필요했나</h2>
+    <p>
+      보안 취약점을 조사할 때 제일 위험한 건, 그럴듯하게 들리는 설명을 그냥 믿어버리는
+      것이다. "이 버전에 이런 문제가 있대"라는 말을 듣고 그대로 믿는 것과, 그걸
+      <strong>직접 실행해서 눈으로 확인</strong>하는 것 사이에는 큰 차이가 있다.
+    </p>
+    <div class="analogy">
+      <span class="label">비유로 보면</span>
+      <p>소문으로 들은 이야기와, 내가 두 눈으로 직접 본 것은 다르다. 재판에서 "카더라"는
+        증거로 안 쳐주는 것처럼, 여기서도 "AI가 그렇게 말했다"는 증거가 아니다. 실제로
+        재현해서 관찰한 결과만 증거로 인정한다는 규칙을 처음부터 정해두고 시작했다.</p>
+    </div>
+    <p>
+      그래서 도구 자체에 몇 가지 규칙을 못박아뒀다. 실행은 반드시 정확한 승인 문구
+      (<code>GO &lt;control_id&gt;</code>)를 받은 뒤에만 하고, 확실한 사실에는 항상
+      출처를 달고, 확인 안 된 건 그냥 "모름"으로 남겨두고 넘어가지 않는다는 것.
+    </p>
+  </section>
+
+  <hr class="divider" />
+
+  <section class="chapter">
+    <span class="chapter-tag">1장</span>
+    <h2>이 도구를 실제로 어떻게 만들었나</h2>
+    <p>
+      맨 처음부터 혼자 만든 건 아니었다. 강사가 기본 뼈대(빈 폴더 구조, 최소한의 규칙
+      문서)를 미리 만들어서 나눠줬고, 나는 그걸 내 저장소로 가져와서 필요한 내용을
+      직접 채워 넣고 확장하는 방식으로 만들었다.
+    </p>
+
+    <h3>폴더를 두 종류로 나눴다</h3>
+    <p>
+      제일 먼저 정한 건 "공통 규칙"과 "사례별 결과물"을 절대 섞지 않는다는 원칙이었다.
+    </p>
+    <div class="compare-table">
+      <table>
+        <thead><tr><th>폴더</th><th>담는 것</th></tr></thead>
+        <tbody>
+          <tr><td><code>harness/</code></td><td>모든 취약점 조사에 공통으로 적용되는 규칙, 절차, 자동 검사 도구</td></tr>
+          <tr><td><code>cves/CVE-번호/</code></td><td>취약점 하나하나의 실제 조사 기록·실행 결과·보고서</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="analogy">
+      <span class="label">비유로 보면</span>
+      <p>요리 학원의 "조리 원칙과 위생 수칙"(공통 규칙)과, 그날그날 만든 요리 하나하나의
+        "레시피 카드"(사례별 결과물)를 따로 관리하는 것과 같다. 원칙은 요리가 바뀌어도
+        그대로 쓰고, 레시피 카드만 요리마다 새로 만든다.</p>
+    </div>
+
+    <h3>공통 규칙 안에 정확히 뭘 넣었나</h3>
+    <ul class="issue-list">
+      <li><span class="tag">순서</span>조사 절차를 아홉 단계로 못박았다: 공식 자료 조사 →
+        수정 전/후 코드 비교 → 원인 분석 → 취약점 분류 → 실행 계획 세우기 →
+        <strong>사람 승인 받기</strong> → 실제 실행 → 재현 결과 비교 → 보고서 작성</li>
+      <li><span class="tag">역할</span>어떤 결정은 절대 AI가 혼자 내리지 못하게 정해뒀다 —
+        조사 범위 승인, 실행 승인, 성공 여부 확정, 최종 결론 확정은 전부 나만 할 수 있다</li>
+      <li><span class="tag">안전</span>실행 대상은 내 컴퓨터 안(localhost)으로만 한정했고,
+        "진행해", "알아서 해" 같은 애매한 말은 승인으로 인정하지 않고, 정확한 형식
+        (<code>GO CTL-xxx</code>)으로만 승인이 되게 정했다</li>
+      <li><span class="tag">근거 등급</span>모든 문장을 "확실한 사실(출처 있음)" /
+        "추론(근거로 유추했지만 확실친 않음)" / "아직 모름" 세 등급으로 나누고, 셋을
+        절대 섞지 않기로 했다</li>
+      <li><span class="tag">자동 검사</span>이 규칙들을 실제로 지켰는지 사람이 매번 눈으로
+        확인하는 대신, 프로그램이 자동으로 검사해주는 도구를 같이 만들었다</li>
+    </ul>
+
+    <h3>취약점 하나를 조사할 때마다 폴더 하나씩 쌓인다</h3>
+    <p>
+      새 취약점을 조사할 때마다 <code>cves/CVE-번호/</code> 아래에 같은 모양의 하위
+      폴더가 자동으로 만들어지도록 했다 — 조사 기록을 넣는 곳, 실행 환경을 넣는 곳,
+      실제 실행 결과(증거)를 넣는 곳, 보고서를 넣는 곳이 항상 똑같은 자리에 있다.
+      그래서 취약점이 몇 개로 늘어나도 "이번엔 어디에 뭘 넣어야 하지"를 매번 새로
+      고민할 필요가 없었다.
+    </p>
+
+    <h3>가장 신경 쓴 부분</h3>
+    <p>
+      만들면서 제일 신경 쓴 건 "사람이 뭘 승인하는지"를 흐릿하게 두지 않는 거였다.
+      실행 전에는 항상 무엇을, 어떤 대상에, 어떤 영향으로, 어떻게 되돌리는지(Cleanup)
+      먼저 보여주고, 그걸 보고 나서 정확한 형식으로 승인해야만 다음 단계로 넘어가게
+      만들었다. 이 원칙 덕분에 나중에 "이걸 진짜 내가 승인한 게 맞나"를 헷갈릴 일이
+      없었다.
+    </p>
+  </section>
+
+  <hr class="divider" />
+
+  <section class="chapter">
+    <span class="chapter-tag">2장</span>
+    <h2>연습 대상으로 첫 번째 취약점을 조사했다</h2>
+    <p>
+      첫 대상은 Apache라는 아주 널리 쓰이는 웹 서버 소프트웨어의 취약점(CVE-2021-41773)이었다.
+      "경로 순회(Path Traversal)"라고 부르는 종류인데, 쉽게 말하면 <strong>원래는
+      못 보게 막아둔 파일에, 요청 주소를 교묘하게 만들어서 접근할 수 있게 되는 문제</strong>다.
+    </p>
+    <h3>어떻게 조사했나</h3>
+    <p>
+      순서는 이랬다: 회사(Apache)가 공식적으로 낸 발표문을 먼저 읽고 → 문제가 있던 버전과
+      고쳐진 버전의 실제 코드를 받아서 직접 비교(diff)하고 → 그 차이를 바탕으로 "왜
+      이 문제가 생겼는지" 정리하고 → 마지막으로 내 컴퓨터 안에 두 버전을 각각 띄워서
+      진짜로 재현되는지 직접 확인했다.
+    </p>
+    <h3>결과</h3>
+    <div class="compare-table">
+      <table>
+        <thead><tr><th>버전</th><th>상황</th><th>결과</th></tr></thead>
+        <tbody>
+          <tr><td>문제 있는 버전</td><td>보호 설정 없는 경우</td><td>파일 노출됨 (재현 성공)</td></tr>
+          <tr><td>고쳐진 버전</td><td>동일 조건</td><td>차단됨</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>공식 문서의 설명이 실제 동작과 정확히 일치한다는 걸 내 손으로 확인한 첫 사례였다.</p>
+  </section>
+
+  <hr class="divider" />
+
+  <section class="chapter">
+    <span class="chapter-tag">3장</span>
+    <h2>같은 도구로, 완전히 다른 취약점을 조사했다</h2>
+    <p>
+      도구를 한 번 쓰고 버릴 거면 만들 이유가 없다. 그래서 이번엔 <strong>전혀 다른
+      소프트웨어(Grafana, 데이터 시각화 대시보드 도구)</strong>의 다른 취약점
+      (CVE-2021-43798)에 같은 도구를 그대로 적용해봤다.
+    </p>
+    <div class="analogy">
+      <span class="label">비유로 보면</span>
+      <p>레시피가 좋은 레시피라면, 재료만 바꿔서 다른 요리에도 써먹을 수 있어야 한다.
+        "이 재료 한정으로만 되는 레시피"는 사실 좋은 레시피가 아니다.</p>
+    </div>
+    <h3>결과</h3>
+    <p>
+      이번엔 첫 번째 취약점과 달리 <strong>별도의 안전하지 않은 설정 없이, 그냥 기본
+      설치 상태 그대로</strong> 문제가 재현됐다 — 훨씬 더 위험한 종류였다는 뜻이다.
+      같은 도구, 같은 절차인데도 다른 소프트웨어에 바로 적용됐다는 게 이 도구가
+      "재사용 가능하다"는 증거였다.
+    </p>
+    <div class="result-box">
+      <span class="label">확인 결과</span>
+      문제 있는 버전 → 파일 노출됨(별도 설정 불필요) / 고쳐진 버전 → 차단됨
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <section class="chapter">
+    <span class="chapter-tag">4장</span>
+    <h2>도구를 쓰다가, 도구 자체의 문제를 발견했다</h2>
+    <p>
+      취약점을 두 개 조사하고 나니, 도구 자체에도 손볼 곳이 여럿 보였다. 만들 때는
+      몰랐는데 실제로 써봐야만 드러나는 문제들이었다.
+    </p>
+    <ul class="issue-list">
+      <li><span class="tag">1</span>내 컴퓨터(macOS)의 기본 프로그램이 너무 오래된 버전이라 스크립트가 실행되자마자 멈췄다</li>
+      <li><span class="tag">2</span>비밀번호도 아닌 파일이 "비밀번호 방지 규칙"에 걸려서 저장이 안 됐다</li>
+      <li><span class="tag">3</span>검사 도구가 처음 만든 CVE 이름 하나만 볼 줄 알아서, 두 번째 취약점은 검사가 아예 안 됐다</li>
+      <li><span class="tag">4</span>"근거 없이 확정하지 마라"는 검사 도구가 사실 한 번도 제대로 작동한 적이 없었다</li>
+      <li><span class="tag">5</span>"성공/실패"를 사람이 눈으로 읽고 판단하고 있었다 — 코드가 확인한 게 아니었다</li>
+      <li><span class="tag">6</span>같은 값을 여러 파일에 손으로 반복 입력하다 보니, 서로 다른 값이 들어가도 아무도 몰랐다</li>
+    </ul>
+    <p>
+      여섯 개 다 찾아서 고쳤고, 특히 5번과 6번은 서로 원인과 결과 관계였다 — 6번(값을
+      손으로 여러 번 입력)이 바로 5번(판정 이름이 서로 안 맞았던 것)이 아무도 모르게
+      생길 수 있었던 진짜 이유였다.
+    </p>
+    <p style="font-size:14px;color:var(--ink-soft);">
+      (여섯 개를 하나씩 자세히 풀어 쓴 글은 따로 있다 — 이 글은 오늘 하루 전체를
+      훑는 요약이라 여기선 목록으로만 남긴다.)
+    </p>
+  </section>
+
+  <hr class="divider" />
+
+  <section class="chapter">
+    <span class="chapter-tag">오늘의 결과</span>
+    <h2>숫자로 보면</h2>
+    <div class="stat-row">
+      <div class="stat-card"><span class="num">2</span><span class="label">조사한 취약점</span></div>
+      <div class="stat-card"><span class="num">6</span><span class="label">도구 자체 개선</span></div>
+      <div class="stat-card"><span class="num">34</span><span class="label">자동 테스트 통과</span></div>
+      <div class="stat-card"><span class="num">2</span><span class="label">완성된 보고서</span></div>
+    </div>
+    <p>
+      만든 것들: 각 취약점별 상세 보고서(웹 페이지 형태), 도구 개선 과정을 정리한
+      글, 그리고 발표용 슬라이드까지 — 전부 Git으로 버전 관리하면서 커밋 이력에
+      "도구 만들기 → 취약점 1 조사 → 취약점 2 조사 → 도구 개선"이 순서대로 남게
+      했다.
+    </p>
+  </section>
+
+  <section class="closing">
+    <h2 style="font-size:22px;margin-bottom:16px;">오늘 배운 것</h2>
+    <p>
+      도구는 한 번 만들면 끝나는 게 아니었다. 처음 만든 도구가 완벽했던 게 아니라,
+      <strong>실제로 두 번째 대상에 써봐야만 첫 번째 대상만으로는 절대 안 보였을
+      문제들이 드러났다.</strong> 그리고 그 문제들 중 몇 개는 소리 없이 조용히
+      작동을 안 하고 있었다 — "에러가 없다"는 게 "제대로 검사됐다"는 뜻이 아니라는
+      걸 오늘 제일 크게 배웠다.
+    </p>
+  </section>
+
+  <footer>
+    2026-08-13 · 하네스 구축 및 활용 기록
+  </footer>
+
+</div>
+</body>
+</html>

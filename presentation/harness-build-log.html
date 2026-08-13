@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Harness 구축 기록 — 방법과 순서</title>
+<style>
+  :root {
+    --ink: #171b22; --ink-soft: #3a4150; --paper: #f7f4ec; --paper-raised: #fffdf7;
+    --line: #ddd6c5; --accent: #a15a2c; --accent-soft: #f0e2d3; --danger: #a3402f;
+    --danger-soft: #f6e2dd; --safe: #2f7a63; --safe-soft: #e1efe9; --mono-bg: #efe9da;
+    --shadow: 0 1px 2px rgba(23, 27, 34, 0.06);
+  }
+  :root[data-theme="dark"] {
+    --ink: #eae6db; --ink-soft: #b6b0a0; --paper: #14171d; --paper-raised: #1b1f27;
+    --line: #303543; --accent: #d3925f; --accent-soft: #3a2c22; --danger: #e08876;
+    --danger-soft: #3b2320; --safe: #7cc7ac; --safe-soft: #1c332c; --mono-bg: #1f232c;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #eae6db; --ink-soft: #b6b0a0; --paper: #14171d; --paper-raised: #1b1f27;
+      --line: #303543; --accent: #d3925f; --accent-soft: #3a2c22; --danger: #e08876;
+      --danger-soft: #3b2320; --safe: #7cc7ac; --safe-soft: #1c332c; --mono-bg: #1f232c;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+    font-size: 16px; line-height: 1.68; -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", "Noto Serif KR", serif;
+    color: var(--ink); text-wrap: balance; font-weight: 600;
+  }
+  code, .mono { font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace; font-variant-numeric: tabular-nums; }
+  a { color: var(--accent); }
+
+  .shell {
+    display: grid; grid-template-columns: 230px minmax(0, 760px); gap: 48px;
+    max-width: 1080px; margin: 0 auto; padding: 56px 24px 120px;
+  }
+  @media (max-width: 940px) { .shell { grid-template-columns: minmax(0, 1fr); } nav.toc { display: none; } }
+  nav.toc { position: sticky; top: 40px; align-self: start; font-size: 12.5px; }
+  nav.toc .toc-label { text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink-soft); font-size: 11px; margin-bottom: 12px; display: block; }
+  nav.toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; border-left: 1px solid var(--line); }
+  nav.toc a { display: block; padding: 2px 0 2px 14px; color: var(--ink-soft); text-decoration: none; border-left: 2px solid transparent; margin-left: -1px; }
+  nav.toc a:hover { color: var(--accent); border-left-color: var(--accent); }
+
+  header.letterhead { border-bottom: 3px solid var(--ink); padding-bottom: 22px; margin-bottom: 40px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 0.1em; font-size: 11px; color: var(--ink-soft); margin: 0 0 10px; }
+  header.letterhead h1 { font-size: 30px; margin: 0 0 8px; }
+  .subtitle { color: var(--ink-soft); font-size: 15px; margin: 0; }
+
+  section { margin-bottom: 46px; scroll-margin-top: 24px; }
+  section h2 { font-size: 20px; margin: 0 0 4px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+  section h2 .num { color: var(--accent); font-family: ui-monospace, monospace; font-size: 14px; margin-right: 10px; }
+  section h3 { font-size: 15px; margin: 24px 0 8px; color: var(--ink); font-family: -apple-system, sans-serif; font-weight: 700; }
+  section p { margin: 10px 0; }
+  section ul, section ol { margin: 10px 0; padding-left: 22px; }
+  section li { margin: 6px 0; }
+
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: var(--paper); font-size: 12px; font-weight: 700;
+    font-family: ui-monospace, monospace; margin-right: 8px; flex-shrink: 0;
+  }
+  .step { display: flex; align-items: baseline; margin: 14px 0 4px; }
+  .step-body { margin-left: 30px; }
+
+  .tree {
+    background: var(--mono-bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 16px 18px; font-size: 12.5px; line-height: 1.7; overflow-x: auto; white-space: pre;
+  }
+  .tree .comment { color: var(--ink-soft); }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; box-shadow: var(--shadow); margin: 14px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; background: var(--paper-raised); }
+  th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { background: var(--mono-bg); color: var(--ink-soft); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.05em; font-weight: 600; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .callout {
+    background: var(--paper-raised); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: 4px; padding: 13px 17px; box-shadow: var(--shadow); margin: 14px 0; font-size: 14px;
+  }
+
+  .codeline {
+    background: var(--mono-bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 10px 14px; font-size: 13px; margin: 8px 0; overflow-x: auto; white-space: pre;
+  }
+  .codeline::before { content: "$ "; color: var(--ink-soft); }
+
+  footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav class="toc" aria-label="목차">
+    <span class="toc-label">구축 순서</span>
+    <ol>
+      <li><a href="#s1">01 · 시작점</a></li>
+      <li><a href="#s2">02 · 전체 구조 설계</a></li>
+      <li><a href="#s3">03 · 공통 규칙 문서</a></li>
+      <li><a href="#s4">04 · D1 절차 구축</a></li>
+      <li><a href="#s5">05 · D2 절차 구축</a></li>
+      <li><a href="#s6">06 · D3 절차 구축</a></li>
+      <li><a href="#s7">07 · 자동 검사 도구</a></li>
+      <li><a href="#s8">08 · 재사용성 검증</a></li>
+      <li><a href="#s9">09 · 실사용 중 개선</a></li>
+      <li><a href="#s10">10 · 최종 구조</a></li>
+    </ol>
+  </nav>
+
+  <main>
+    <header class="letterhead">
+      <p class="eyebrow">Build Log</p>
+      <h1>내가 Harness를 구축한 방법과 순서</h1>
+      <p class="subtitle">강사 골격을 받은 시점부터, 자동 검사 도구를 만들고 두 번째 CVE로 재사용성을 검증하기까지 — 실제로 만든 순서 그대로.</p>
+    </header>
+
+    <section id="s1">
+      <h2><span class="num">01</span>시작점 — 강사 골격 받기</h2>
+      <p>
+        빈 공책부터 만든 게 아니다. 강사가 이미 만들어둔 최소 골격(Repository)을
+        clone해서 내 계정의 새 Private Repository로 옮기는 것부터 시작했다. Fork를
+        쓰지 않은 이유는, Fork는 원본 저장소와의 연결 관계가 GitHub 안에 계속
+        남아서 "완전히 내 것"으로 독립시키기 어렵기 때문이다.
+      </p>
+      <div class="codeline">git clone (강사 저장소) → 새 폴더로 압축 해제 → git remote로 내 Private Repo 연결 → push</div>
+      <p>
+        받은 골격 안에는 폴더 뼈대와 최소한의 안내 문서(<code>README.md</code>,
+        <code>AGENTS.md</code>)만 있었고, 실제 내용은 거의 비어 있었다. 이걸 채워
+        넣는 게 이후 전체 과정이다.
+      </p>
+    </section>
+
+    <section id="s2">
+      <h2><span class="num">02</span>전체 구조 설계 — 두 영역으로 분리</h2>
+      <p>
+        제일 먼저 정한 원칙: <strong>"모든 CVE에 공통으로 적용되는 규칙"</strong>과
+        <strong>"CVE 하나하나의 실제 조사 결과"</strong>를 절대 같은 곳에 두지 않는다.
+      </p>
+      <div class="tree">harness/          <span class="comment"># 공통 규칙·절차·검증 도구 (CVE가 몇 개든 재사용)</span>
+cves/             <span class="comment"># CVE별 작업공간</span>
+  └── CVE-2021-41773/
+  └── CVE-2021-43798/
+scripts/          <span class="comment"># harness/를 실제로 검사·실행해주는 도구 코드</span>
+tests/            <span class="comment"># scripts/의 동작을 검증하는 자동 테스트</span></div>
+      <p>
+        이렇게 나눠두면, 새 CVE를 하나 더 조사할 때 <code>harness/</code>는 전혀
+        안 건드리고 <code>cves/</code> 아래에 폴더만 하나 추가하면 된다 — 실제로
+        두 번째 CVE(Grafana)를 조사할 때 정확히 이렇게 했다.
+      </p>
+    </section>
+
+    <section id="s3">
+      <h2><span class="num">03</span>공통 규칙 문서부터 채웠다</h2>
+      <p><code>harness/</code> 폴더 자체를 채우기 전에, 저장소 최상위에 "이 안에서
+        어떻게 행동해야 하는지"를 정하는 계약 문서를 먼저 만들었다.</p>
+
+      <div class="step"><span class="step-num">1</span><strong>AGENTS.md</strong> — AI와 나의 역할·승인 규칙</div>
+      <div class="step-body">
+        <ul>
+          <li>Day가 시작될 때(<code>DAY 1 START</code> 등) 뭘 먼저 확인해야 하는지</li>
+          <li>실제 Control(실행)은 반드시 <code>GO &lt;control_id&gt;</code> 형식으로만 승인된다는 것</li>
+          <li>AI는 Scope·실행 권한·성공 여부·최종 결론을 스스로 확정하지 않는다는 것</li>
+        </ul>
+      </div>
+
+      <div class="step"><span class="step-num">2</span><strong>scope.md</strong> — 실행 범위와 STOP 조건</div>
+      <div class="step-body">
+        <ul>
+          <li>허용 Target: <code>127.0.0.1</code>/<code>localhost</code>와 이 저장소가 만든 격리 Docker Compose만</li>
+          <li>STOP 조건: 외부 IP·도메인, Credential 수집, 파괴적 동작, "알아서 해" 같은 모호한 승인</li>
+        </ul>
+      </div>
+
+      <div class="step"><span class="step-num">3</span><strong>harness/workflow.md</strong> — 전체 절차 한 줄 요약</div>
+      <div class="step-body">
+        <div class="codeline" style="cursor:default">CVE Intake → Source Map → Patch Diff → Root Cause → CWE → PLAN(Control Card) → HUMAN GO → RUN → CHECK(Same-Control) → Evidence Review → Report → Harness Diff</div>
+      </div>
+
+      <div class="step"><span class="step-num">4</span><strong>harness/policies/invariants.md</strong> — 절대 안 바뀌는 규칙</div>
+      <div class="step-body">
+        <ul>
+          <li>취약/조치 환경에 반드시 같은 Control·같은 요청을 적용한다(Same-Control)</li>
+          <li>실행 환경(Docker 이미지)은 태그가 아니라 실제 실행 중인 컨테이너의 digest로 확인한다</li>
+          <li>Lab은 기본적으로 전부 차단(deny-by-default)하고, 필요한 경로만 최소로 연다</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="s4">
+      <h2><span class="num">04</span>D1 절차를 구축했다 — "조사"</h2>
+      <p>첫 번째 CVE(Apache, CVE-2021-41773)를 실제로 조사하면서, 그 절차 자체를
+        재사용 가능한 형태로 다듬었다.</p>
+      <ol>
+        <li><strong>intake.md</strong> — CVE ID, 제품, 취약/조치 버전 후보를 채워 넣는 기본 카드</li>
+        <li><strong>sources/source-map.md</strong> — 공식 Advisory·CVE Record·Repository만 출처로 인정하고, 각 출처가 어떤 Claim을 뒷받침하는지 표로 연결</li>
+        <li><strong>Claim 판정</strong> — 조사 중 나온 주장 하나하나에 번호(<code>CLAIM-001</code>...)를 붙이고, ACCEPTED/CORRECTED/REJECTED/UNKNOWN 중 하나로 직접 판정</li>
+        <li><strong>analysis/root-cause.md</strong>, <strong>analysis/cwe.md</strong> — 코드 diff를 직접 읽고 FACT/INFERENCE/UNKNOWN을 구분해서 작성, 반증 조건도 같이 기록</li>
+        <li><strong>D1 Gate 확정</strong> — 위 문서들을 전부 검토하고 확정해야 다음 단계로 넘어감</li>
+      </ol>
+      <div class="callout">
+        여기서 정한 규칙: FACT라고 쓰려면 반드시 <code>[SRC-NNN]</code> 같은 출처
+        표시가 있어야 하고, 없으면 INFERENCE나 UNKNOWN으로 남긴다. 이 규칙을 나중에
+        자동으로 검사하는 도구까지 만들게 된다(07절).
+      </div>
+    </section>
+
+    <section id="s5">
+      <h2><span class="num">05</span>D2 절차를 구축했다 — "재현"</h2>
+      <p>조사만으로는 부족하다. 실제로 취약한 버전과 고쳐진 버전을 내 컴퓨터 안에
+        띄워서 눈으로 확인하는 단계를 만들었다.</p>
+
+      <h3>Lab 설계 원칙</h3>
+      <ul>
+        <li>이미지는 태그가 아니라 <strong>digest로 고정</strong> — 나중에 태그가 다른 내용으로 바뀌어도 항상 같은 이미지를 쓴다는 보장</li>
+        <li><code>read_only: true</code> + <code>tmpfs</code> — 컨테이너 안에서 정말 필요한 곳만 쓰기 허용</li>
+        <li>127.0.0.1에만 포트를 열고, 실제 OS 파일 대신 Lab이 소유한 marker 파일로 성공 여부를 판별</li>
+      </ul>
+
+      <h3>Control Card와 승인 절차</h3>
+      <p>실제로 뭔가 실행하기 전에는 항상 이 형식으로 먼저 제시하기로 정했다.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>항목</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td>목적</td><td>왜 이 Control이 필요한지</td></tr>
+            <tr><td>명령</td><td>실제로 실행할 명령</td></tr>
+            <tr><td>Target</td><td>어디에 영향을 주는지 (127.0.0.1만)</td></tr>
+            <tr><td>영향</td><td>뭐가 바뀌는지</td></tr>
+            <tr><td>성공/실패 기준</td><td>뭐가 나오면 성공/실패인지</td></tr>
+            <tr><td>Cleanup</td><td>끝나고 어떻게 원상복구하는지</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        이걸 보여준 뒤 정확히 <code>GO &lt;control_id&gt;</code> 형식으로 승인받은
+        뒤에만 실행했다. "진행해", "승인할게" 같은 표현은 형식이 안 맞으면 실행을
+        거부하도록 실제로 여러 번 테스트했다.
+      </p>
+
+      <h3>Same-Control 원칙 — 해시로 증명</h3>
+      <p>
+        취약한 버전과 고쳐진 버전에 <strong>완전히 똑같은 요청</strong>을 보냈다는
+        걸 증명하기 위해, 요청 내용·판정 기준을 각각 sha256으로 해시해서 두 Target에서
+        같은 값이 나오는지 대조하는 절차를 만들었다.
+      </p>
+    </section>
+
+    <section id="s6">
+      <h2><span class="num">06</span>D3 절차를 구축했다 — "정리"</h2>
+      <ol>
+        <li><strong>Evidence Review</strong> — 실행 결과(raw)를 내가 직접 검토해서 <code>REVIEWED</code>/<code>report_eligible</code>로 승인해야 보고서에 인용 가능</li>
+        <li><strong>Masked Evidence</strong> — raw는 그대로 보존하고, 강의·제출용으로 민감 정보를 가릴 사본을 별도로 만듦(이번엔 원래 민감 정보가 없어서 내용은 동일했음)</li>
+        <li><strong>보고서 작성 규칙</strong> — 승인된 Evidence만 인용하고, 성공/실패 주장마다 <code>[evidence:ID]</code> 태그를 반드시 붙인다</li>
+        <li><strong>retrospective/reuse-check.md</strong> — 이번 CVE를 조사하며 harness 자체에서 발견한 문제를 "실패 Ref / 원인 / 변경 위치 / 재실행 결과 / 다음 CVE 재사용 영향" 형식으로 기록</li>
+      </ol>
+    </section>
+
+    <section id="s7">
+      <h2><span class="num">07</span>자동 검사 도구를 만들었다</h2>
+      <p>
+        규칙을 문서로만 적어두면 사람이 매번 눈으로 확인해야 한다. 그래서
+        <code>scripts/lib/checks.mjs</code>에 D1/D2/D3 각 단계가 실제로 규칙을
+        지켰는지 자동으로 검사하는 함수를 만들었다.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>단계</th><th>자동으로 검사하는 것</th></tr></thead>
+          <tbody>
+            <tr><td>D1</td><td>Scope에 STOP 조건이 있는지, FACT 문장마다 출처가 있는지, Intake가 비어있지 않은지</td></tr>
+            <tr><td>D2</td><td>Target이 loopback인지, GO 승인이 있는지, digest가 고정돼 있는지, Cleanup이 정의됐는지</td></tr>
+            <tr><td>D3</td><td>취약/조치 Observation의 해시가 서로 같은지(Same-Control), 보고서가 인용한 Evidence가 실제로 승인됐는지</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="codeline">npm run check -- D1 CVE-2021-41773</div>
+      <p>이 명령 하나로 "지금 이 CVE의 D1 산출물이 규칙을 지켰는지"를 즉시 확인할
+        수 있게 됐다. 통과하면 <code>GO</code>, 문제가 있으면 <code>REVISE</code>
+        또는 <code>STOP</code>이 뜬다.</p>
+    </section>
+
+    <section id="s8">
+      <h2><span class="num">08</span>재사용성을 실제로 검증했다</h2>
+      <p>
+        도구를 "만들었다"는 주장만으로는 부족하다고 생각해서, <strong>전혀 다른
+        소프트웨어의 다른 취약점(Grafana, CVE-2021-43798)</strong>에 harness/
+        폴더를 하나도 안 건드리고 그대로 적용해봤다.
+      </p>
+      <div class="codeline">npm run new:cve -- CVE-2021-43798   <span class="comment"># 표준 폴더 구조 자동 생성</span></div>
+      <p>
+        같은 D1→D2→D3 순서, 같은 Control Card 형식, 같은 자동 검사 명령이 그대로
+        먹혔다 — 이게 "이 harness가 재사용 가능한 도구"라는 걸 증명하는 방법이라고
+        생각했다.
+      </p>
+    </section>
+
+    <section id="s9">
+      <h2><span class="num">09</span>실제로 써보면서 도구 자체를 6번 고쳤다</h2>
+      <p>만들 때는 몰랐고, 두 CVE를 실제로 조사하면서 순서대로 발견해서 고친 문제들이다.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>버전</th><th>발견한 문제</th><th>고친 위치</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">v1.1</td><td>Lab 스크립트가 macOS 기본 bash에서 실행 안 됨 / 설정 파일이 gitignore에 걸림</td><td>스크립트 문법, 파일명</td></tr>
+            <tr><td class="mono">v1.2</td><td>자동 검사 도구가 CVE 이름 하나만 볼 줄 앎</td><td><code>scripts/lib/checks.mjs</code></td></tr>
+            <tr><td class="mono">v1.3</td><td>"출처 없는 FACT 검사"가 실제론 한 번도 작동 안 함</td><td><code>checkFacts()</code></td></tr>
+            <tr><td class="mono">v1.4</td><td>조치된 쪽 Observation 기록 누락, Source 접근 실패 미기록</td><td>execution/, source-map.md</td></tr>
+            <tr><td class="mono">v1.5</td><td>성공/실패 판정을 사람이 눈으로 함</td><td>Lab 스크립트에 자동 판정 추가</td></tr>
+            <tr><td class="mono">v1.6</td><td>같은 값이 파일 6곳에 손으로 중복 입력</td><td>자동 일치 검사 추가</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>매번 고친 뒤에는 반드시 <strong>같은 입력으로 다시 실행해서 이전과 같은
+        결과가 나오는지</strong> 확인하고, <code>harness/CHANGELOG.md</code>에
+        실패 Ref·원인·변경 위치·재실행 결과·다음 CVE 재사용 영향을 남겼다.</p>
+    </section>
+
+    <section id="s10">
+      <h2><span class="num">10</span>최종 구조 한눈에 보기</h2>
+      <div class="tree">harness/
+├── AGENTS.md, workflow.md
+├── policies/invariants.md          <span class="comment"># 절대 규칙</span>
+├── templates/                       <span class="comment"># control.json, observation.json 등 표준 양식</span>
+├── prompts/                         <span class="comment"># 조사용 Prompt 규칙</span>
+├── validators/
+└── CHANGELOG.md                     <span class="comment"># v0 → v1.6 변경 이력</span>
+
+scripts/
+├── check-day.mjs, lib/checks.mjs   <span class="comment"># D1/D2/D3 자동 검사</span>
+├── new-cve.mjs                      <span class="comment"># 신규 CVE 폴더 자동 생성</span>
+└── validate-starter.mjs             <span class="comment"># 배포본 누출 검사</span>
+
+cves/CVE-2021-41773/  ,  cves/CVE-2021-43798/   <span class="comment"># 구조 동일</span>
+├── intake.md
+├── sources/source-map.md
+├── analysis/{root-cause,cwe}.md
+├── lab/{docker-compose.yml, digests.env, run-ctl-*.sh, fixtures/}
+├── execution/{control,observation,vulnerable,patched}.json
+├── evidence/{index.json, same-control-check.md, raw/, masked/}
+├── retrospective/reuse-check.md
+└── report.md, report.html</div>
+      <p>
+        이 구조 덕분에 세 번째 CVE를 조사한다면, <code>harness/</code>는 그대로 두고
+        <code>npm run new:cve -- CVE-xxxx-xxxxx</code>만 실행하면 같은 뼈대가 그대로
+        생긴다 — 처음부터 다시 설계할 필요가 없다는 게 이 구축 과정의 결론이다.
+      </p>
+    </section>
+
+    <footer>Harness Build Log · 2026-08-13</footer>
+  </main>
+</div>
+</body>
+</html>
