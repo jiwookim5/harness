@@ -168,6 +168,30 @@ function checkExecutionConsistency(root, cveId, vulnerable, patched, issues) {
   }
 }
 
+function checkRequestResultLogs(root, cveId, index, issues) {
+  // Same-Control evidence used to live only as terse JSON (hashes, refs) plus
+  // a single narrative report paragraph — nobody kept a plain, unabridged
+  // record of every request actually sent and every result actually
+  // received. That gap is exactly how CVE-2021-43798's raw response bodies
+  // ended up unreviewable without opening evidence/raw/ (which git doesn't
+  // even track). Require the full, uncut request/result logs and cross-check
+  // that every evidence_id in index.json is actually accounted for.
+  const requestsPath = `cves/${cveId}/evidence/all-requests.md`;
+  const resultsPath = `cves/${cveId}/evidence/all-results.md`;
+  const requests = read(root, requestsPath, issues);
+  const results = read(root, resultsPath, issues);
+  const entries = Array.isArray(index.entries) ? index.entries : [];
+  for (const entry of entries) {
+    if (!entry.evidence_id) continue;
+    if (results && !results.includes(entry.evidence_id)) {
+      issues.push(resultsPath + ": missing result for " + entry.evidence_id);
+    }
+  }
+  if (entries.length && requests && !/\b(GET|POST|PUT|DELETE|PATCH)\b/.test(requests)) {
+    issues.push(requestsPath + ": no HTTP request line found");
+  }
+}
+
 function checkD3(root, cveId) {
   const issues = [];
   const vulnerablePath = `cves/${cveId}/execution/vulnerable.json`;
@@ -192,6 +216,7 @@ function checkD3(root, cveId) {
   }
 
   checkExecutionConsistency(root, cveId, vulnerable, patched, issues);
+  checkRequestResultLogs(root, cveId, index, issues);
 
   const entries = Array.isArray(index.entries) ? index.entries : [];
   const byId = new Map(entries.map((entry) => [entry.evidence_id, entry]));

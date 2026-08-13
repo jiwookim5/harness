@@ -197,11 +197,11 @@ section.slide {
 
   <section class="slide title-slide">
     <p class="eyebrow">Harness 품질 개선 로그 · Security Wave</p>
-    <h1>보고서와 검증기, 무엇을 고쳐가며 좋아졌나</h1>
+    <h1>Harness v0 -> v1 개선</h1>
     <p style="font-size:16.5px;color:var(--color-muted);max-width:60ch;margin-top:16px;line-height:1.6;">
       CVE-2021-41773을 하면서 겪은 문제를 harness에 반영했고, CVE-2021-43798을 하면서
-      또 새로운 사각지대를 발견해 고쳤다. 여기는 그 "고친 기록" 자체를 다룬다 — CVE 취약점
-      내용 비교가 아니라, 산출물의 신뢰도가 실제로 어떻게 올라갔는지.
+      또 새로운 개선점을 발견해 고쳤다. 여기는 그 "고친 기록" 자체를 다룬다 — CVE 취약점
+      내용 비교가 아니라, 산출물의 신뢰도가 실제로 어떻게 올라갔는지 확인한다.
     </p>
     <div class="cve-strip">
       <span class="chip accent">출처 없는 FACT 검사</span>
@@ -216,21 +216,6 @@ section.slide {
     <div class="slide-num"><strong>01</strong> / 09</div>
   </section>
 
-  <section class="slide">
-    <p class="eyebrow">전체 타임라인</p>
-    <h2>같은 하루 안에서 6번 고쳤다</h2>
-    <p class="lede">41773 리허설 직후 43798을 시작하자마자, 이전에는 안 보이던 사각지대가 연달아 드러났다.</p>
-    <div class="timeline">
-      <div class="commit"><div class="ver">v1.1 · 41773 리허설</div><div class="msg">macOS bash 3.2 호환, <code>.env</code> 파일명 회피 — 이후 모든 Lab 스크립트의 전제가 됨</div></div>
-      <div class="commit"><div class="ver">v1.2 · 43798 착수</div><div class="msg">Gate 검증기가 41773 경로만 하드코딩돼 있어 새 CVE를 아예 검사할 수 없었음 → CVE ID를 매개변수화</div></div>
-      <div class="commit"><div class="ver">v1.3 · 출처 검사</div><div class="msg">"Source 없는 FACT를 잡는다"던 검사기가 정규식 버그로 <strong>한 번도 작동한 적이 없었음</strong> → 수정</div></div>
-      <div class="commit"><div class="ver">v1.4 · 접근 실패 기록</div><div class="msg">cve.org 접근 실패 → 대체 경로로 우회한 사실이 문서에 안 남아 있었음 → 기록 절 추가</div></div>
-      <div class="commit"><div class="ver">v1.5 · 판정 자동화</div><div class="msg">사람이 curl 출력을 눈으로 읽고 성공/실패 판단 → 스크립트가 grep으로 직접 판정해 출력</div></div>
-      <div class="commit"><div class="ver">v1.6 · 해시 중복</div><div class="msg">같은 해시값이 6곳에 손으로 중복 입력돼 있었음 → 파일 간 자동 대조 추가</div></div>
-      <div class="commit"><div class="ver">오늘 · 가독성 + Scope</div><div class="msg">43798 Executive Summary를 카드형으로 재구성, 라우터 코드 미확인을 "TODO"가 아니라 "학생 지시로 제외"로 명시</div></div>
-    </div>
-    <div class="slide-num"><strong>02</strong> / 09</div>
-  </section>
 
   <section class="slide">
     <p class="eyebrow">가독성 개선 · 오늘</p>
@@ -256,7 +241,7 @@ section.slide {
         </div>
       </div>
     </div>
-    <div class="slide-num"><strong>03</strong> / 09</div>
+    <div class="slide-num"><strong>02</strong> / 09</div>
   </section>
 
   <section class="slide">

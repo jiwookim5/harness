@@ -154,6 +154,10 @@ const d3Files = {
   }),
   "cves/CVE-2021-41773/report.md":
     "# Report\n검토된 결과 [evidence:EVID-001]\n기각 기록은 Trace에 보존한다.\n",
+  "cves/CVE-2021-41773/evidence/all-requests.md":
+    "# All Requests\nGET /marker.txt HTTP/1.1\n",
+  "cves/CVE-2021-41773/evidence/all-results.md":
+    "# All Results\nEVID-001: HTTP 200\nEVID-002: HTTP 404\n",
   "cves/CVE-2021-41773/retrospective/reuse-check.md":
     "# Reuse\nBlocker: Matcher 설명 누락\nHarness 변경: Report Gate 추가\n다음 CVE: 공통 Gate 재사용\n",
   "harness/CHANGELOG.md":
@@ -177,6 +181,36 @@ test("D3 rejects report references to ineligible evidence", () => {
     "cves/CVE-2021-41773/report.md": "# Report\n[evidence:EVID-002]\n"
   };
   assert.ok(checkDay(fixture(files), "D3").some((issue) => issue.includes("report_eligible")));
+});
+
+test("D3 rejects a missing all-requests.md", () => {
+  const files = { ...d3Files };
+  delete files["cves/CVE-2021-41773/evidence/all-requests.md"];
+  assert.ok(
+    checkDay(fixture(files), "D3").some((issue) => issue.includes("all-requests.md: missing"))
+  );
+});
+
+test("D3 rejects all-results.md missing a result for a listed evidence_id", () => {
+  const files = {
+    ...d3Files,
+    "cves/CVE-2021-41773/evidence/all-results.md": "# All Results\nEVID-001: HTTP 200\n"
+  };
+  assert.ok(
+    checkDay(fixture(files), "D3").some(
+      (issue) => issue.includes("all-results.md") && issue.includes("EVID-002")
+    )
+  );
+});
+
+test("D3 rejects all-requests.md with no HTTP request line", () => {
+  const files = {
+    ...d3Files,
+    "cves/CVE-2021-41773/evidence/all-requests.md": "# All Requests\n아직 안 채움\n"
+  };
+  assert.ok(
+    checkDay(fixture(files), "D3").some((issue) => issue.includes("no HTTP request line"))
+  );
 });
 
 test("D3 preserves rejected and unknown evidence in the trace", () => {

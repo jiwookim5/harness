@@ -136,3 +136,32 @@
   다음 CVE 재사용 영향: 앞으로 Observation류 JSON 파일을 여러 개 만드는 CVE는 이
   자동 대조를 그대로 통과해야 하므로, 해시값을 손으로 옮겨 적다가 생기는 오타/누락이
   Gate 단계에서 바로 걸러짐
+
+## v1.7 (요청/결과 전문 기록 누락, 2026-08-13)
+
+- 실패 Ref: CVE-2021-43798 발표 자료를 준비하며 "정확히 어떤 요청을 보내서 어디서
+  취약점을 발견했는지"를 물었을 때, 그 답이 `execution/*.json`의 해시값과
+  `evidence/raw/`(git 미추적, 대화 세션에서만 열람 가능)에 흩어져 있을 뿐, 사람이
+  커밋된 파일 하나만 보고 요청 원문과 결과 원문을 전부 확인할 방법이 없었음
+  원인: Same-Control 증거를 설계할 때 "기계가 읽는 구조화 데이터(JSON, 해시)"와
+  "사람이 읽는 요약(report.md/html)"만 만들었고, 그 중간에 있어야 할 "가공 없는
+  요청/결과 전문 기록"이 아예 산출물 종류로 존재하지 않았음. `evidence/raw/`가
+  git에 안 올라가는 것 자체는 의도된 정책(비밀/원본 노출 방지)이라 문제가 아니지만,
+  그 정책 때문에 커밋 가능한 대체본이 없다는 게 문제였음
+  변경 위치: `harness/templates/all-requests.md`, `harness/templates/all-results.md`
+  신규 추가(스켈레톤). `scripts/lib/checks.mjs`에 `checkRequestResultLogs()` 추가,
+  `checkD3()`에서 호출 — `evidence/all-requests.md`·`all-results.md` 존재를 요구하고,
+  `evidence/index.json`에 등록된 모든 `evidence_id`가 `all-results.md`에 실제로
+  등장하는지, `all-requests.md`에 HTTP 요청 라인이 하나라도 있는지 자동 대조.
+  `cves/CVE-2021-41773/`·`cves/CVE-2021-43798/` 양쪽에 실제 파일 작성(healthcheck
+  포함 전체 요청과 raw 응답 본문을 그대로 옮김). `report.html`(43798)의 "09 신뢰
+  근거와 Evidence Ref"에 인용 추가
+  재실행: `npm test`(37/37, 신규 테스트 3개 포함), `npm run check -- D1/D2/D3`(두 CVE
+  모두 GO). 검사가 실제로 작동하는지 확인하려고 43798의 `all-results.md`에서
+  `EVD-D2-HTTP-001-8301`을 일부러 `REMOVED-FOR-TEST`로 바꾼 뒤 재실행 →
+  `REVISE ...all-results.md: missing result for EVD-D2-HTTP-001-8301` 정확히 잡힘.
+  원상복구 후 다시 GO 확인(diff로 원본과 byte-identical 확인)
+  다음 CVE 재사용 영향: 앞으로 모든 CVE는 D3 Gate를 통과하려면 `evidence/all-requests.md`·
+  `all-results.md`를 채워야 하고, `index.json`에 새 evidence_id를 추가하면
+  `all-results.md`도 같이 업데이트해야 Gate가 통과함 — 결과만 JSON에 적고 사람이 읽을
+  전문을 빼먹는 실수를 Gate 단계에서 막음
