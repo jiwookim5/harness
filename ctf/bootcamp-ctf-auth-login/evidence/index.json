@@ -1,0 +1,33 @@
+{
+  "target_id": "bootcamp-ctf-auth-login",
+  "entries": [
+    {
+      "evidence_id": "EVID-RECON-001",
+      "control_id": "CTL-RECON-001",
+      "description": "GET /auth/login?redirect=%2F 응답 헤더 — Metabase/Jetty 식별",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    },
+    {
+      "evidence_id": "EVID-RECON-002",
+      "control_id": "CTL-RECON-002",
+      "description": "GET /api/session/properties 응답 — 버전 v0.46.6, setup-token 노출",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    },
+    {
+      "evidence_id": "EVID-EXPLOIT-001",
+      "control_id": "CTL-EXPLOIT-001",
+      "description": "POST /api/setup/validate 1차 시도 — H2 트리거 생성 syntax error (400)",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    },
+    {
+      "evidence_id": "EVID-EXPLOIT-002",
+      "control_id": "CTL-EXPLOIT-001",
+      "description": "POST /api/setup/validate 2차 시도(원본 PoC 구조로 재작성) — 동일 syntax error (400), 콜백 없음",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    }
+  ]
+}

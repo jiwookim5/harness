@@ -1,0 +1,17 @@
+{
+  "observation_id": "OBS-EXPLOIT-006",
+  "control_id": "CTL-EXPLOIT-006",
+  "environment": "부트캠프 CTF, Tailscale VPN 경유, 학생 로컬 머신에서 직접 curl 실행",
+  "target": "100.121.79.125",
+  "input_sha256": "bec3ecec902bf77f4ededb378ee77d3488533d695ee0fc282c3b54991c309cb1",
+  "request_sha256": "2b9c30461260656a4d9a9232e17e39fafc7891bef749c4c6e0e4d763ee269b2f",
+  "criteria_sha256": "c3eb08fa52a0f28611aa293865eb817c6adab6e7748a8e3e503dfee286896c33",
+  "matcher": "HTTP 200 응답 본문에 'XPATH syntax error'와 MySQL 버전 문자열(예: ~5.1.73)이 포함됨 — extractvalue()가 필터를 우회해 SQL 쿼리 내에서 실행됐음을 의미",
+  "stdout_ref": "evidence/all-results.md#결과11",
+  "stderr_ref": "N/A — curl -sS 실행 중 에러 없음(별도 stderr 출력 없음)",
+  "exit_code": 0,
+  "request_ref": "evidence/all-requests.md#요청11",
+  "response_ref": "evidence/all-results.md#결과11",
+  "server_log_ref": "N/A — 서버측 로그 접근 권한 없음, 클라이언트 관찰(HTTP 응답)만으로 판정",
+  "cleanup_result": "N/A — read-only GET 확인이라 서버측 상태 변경 없음, Cleanup 대상 없음"
+}

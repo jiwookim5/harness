@@ -11,3 +11,5 @@ dist/
 !**/.gitkeep
 cves/*/evidence/raw/*
 !cves/*/evidence/raw/.gitkeep
+ctf/*/evidence/raw/*
+!ctf/*/evidence/raw/.gitkeep

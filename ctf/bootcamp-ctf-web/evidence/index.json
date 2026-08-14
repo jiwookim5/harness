@@ -1,0 +1,19 @@
+{
+  "target_id": "bootcamp-ctf-web",
+  "entries": [
+    { "evidence_id": "EVID-RECON-001", "control_id": "CTL-RECON-001", "description": "GET / fingerprint: Apache 2.2.34 / PHP 5.2.17 / Shop-Wiz", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-RECON-002", "control_id": "CTL-RECON-003", "description": "wizmart.php PHP warning discloses server absolute path", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-RECON-003", "control_id": "CTL-RECON-004", "description": "wizhtml.php traversal/LFI attempts blocked", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-RECON-004", "control_id": "CTL-RECON-007", "description": "wizboard.php BID whitelist blocks quote injection", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-RECON-005", "control_id": "CTL-RECON-008", "description": "wizsearch.php keyword quote escaped (magic_quotes_gpc-like)", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-EXPLOIT-001", "control_id": "CTL-EXPLOIT-001", "description": "out.banner.php uid=1 baseline true -> Location: /", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-EXPLOIT-002", "control_id": "CTL-EXPLOIT-002", "description": "out.banner.php uid=99999 baseline false -> empty Location", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-EXPLOIT-003", "control_id": "CTL-EXPLOIT-003", "description": "out.banner.php uid=1 AND 1=1 true -> Location: /", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-EXPLOIT-004", "control_id": "CTL-EXPLOIT-004", "description": "out.banner.php uid=1 AND 1=2 false -> empty Location (boolean-based blind SQLi confirmed)", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-EXPLOIT-005", "control_id": "CTL-EXPLOIT-005", "description": "SUBSTRING probe reveals verbose SQL error + full query text, keyword filter detected", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-EXPLOIT-006", "control_id": "CTL-EXPLOIT-006", "description": "extractvalue(version()) bypasses filter, extracts MySQL 5.1.73", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-EXPLOIT-007", "control_id": "CTL-EXPLOIT-007", "description": "updatexml/database() blocked by keyword filter", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-EXPLOIT-008", "control_id": "CTL-EXPLOIT-008", "description": "extractvalue(user()) extracts wizmall@172.18.0.3", "preserve_in_trace": true, "report_eligible": true },
+    { "evidence_id": "EVID-EXPLOIT-009", "control_id": "CTL-EXPLOIT-009", "description": "extractvalue(schema()) bypasses database() filter, extracts schema wizmall", "preserve_in_trace": true, "report_eligible": true }
+  ]
+}

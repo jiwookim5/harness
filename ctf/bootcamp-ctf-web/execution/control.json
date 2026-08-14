@@ -1,0 +1,12 @@
+{
+  "control_id": "CTL-EXPLOIT-006",
+  "purpose": "lib/out.banner.php의 uid 파라미터가 boolean-based blind SQLi(CTL-EXPLOIT-001~004)로 이미 확인된 상태에서, error-based 기법(extractvalue)으로 실제 데이터 추출까지 성립하는지 확인한다.",
+  "command": "curl -sS -m 10 --data-urlencode \"uid=1 AND extractvalue(1,concat(0x7e,version()))\" -G \"http://100.121.79.125/lib/out.banner.php\"",
+  "target": "100.121.79.125",
+  "expected_impact": "read-only GET 요청 1건, 서버 상태 변경 없음. MySQL 에러 메시지를 통해 DB 버전 문자열이 응답 본문에 노출될 것으로 예상.",
+  "success_matcher": "HTTP 200 응답 본문에 'XPATH syntax error'와 MySQL 버전 문자열(예: ~5.1.73)이 포함됨 — extractvalue()가 필터를 우회해 SQL 쿼리 내에서 실행됐음을 의미",
+  "failure_matcher": "요청이 차단(잘못된 경로/필터 응답)되거나, 200이지만 XPATH 관련 에러 문자열이 없는 경우 — 필터에 걸려 쿼리가 깨졌거나 인젝션이 성립하지 않음을 의미",
+  "timeout_seconds": 10,
+  "cleanup": "read-only GET 확인이라 서버측 상태 변경 없음 — 별도 Cleanup 불필요. 세션 쿠키(PHPSESSID)는 요청마다 새로 발급되며 자연 만료됨.",
+  "decision": "GO"
+}

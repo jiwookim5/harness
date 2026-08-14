@@ -1,0 +1,68 @@
+{
+  "target_id": "lab-security-wave",
+  "entries": [
+    {
+      "evidence_id": "EVID-RECON-001",
+      "control_id": "CTL-RECON-001",
+      "description": "GET / 응답 — nginx, control-portal JSON 식별",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    },
+    {
+      "evidence_id": "EVID-RECON-002",
+      "control_id": "CTL-RECON-002/003",
+      "description": "GET /robots.txt, GET /login — Next.js 커스텀 404, buildId 노출",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    },
+    {
+      "evidence_id": "EVID-RECON-003",
+      "control_id": "CTL-RECON-004",
+      "description": "GET /_next/static/<buildId>/_buildManifest.js — sortedPages: [/_app, /_error]만 확인",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    },
+    {
+      "evidence_id": "EVID-RECON-004",
+      "control_id": "CTL-RECON-005/006/007",
+      "description": "표준/추측 경로(openapi.json, health, api, auth/login, docs, control, panel, dashboard, admin, status, me) 전부 404, OPTIONS·POST / 는 nginx 405",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    },
+    {
+      "evidence_id": "EVID-RECON-005",
+      "control_id": "CTL-RECON-008",
+      "description": "GET main-<hash>.js — 클라이언트 번들에서 보호 경로 매처 `/api/admin/storage` 발견",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    },
+    {
+      "evidence_id": "EVID-EXPLOIT-001",
+      "control_id": "CTL-EXEC-002",
+      "description": "GET /api/admin/storage — 인증 없이 401, x-middleware-subrequest 헤더로 200 우회 성공 (CVE-2025-29927 계열, Next.js Middleware Authorization Bypass). 응답 헤더에 다음 단계 정보(MinIO verify 경로, ticket, 버킷명) 노출",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    },
+    {
+      "evidence_id": "EVID-EXPLOIT-002",
+      "control_id": "CTL-EXEC-003",
+      "description": "POST /minio/bootstrap/v1/verify (x-lab-ticket 헤더 포함) — 인증 없이 200, MinIO 환경변수(MINIO_ROOT_USER/MINIO_ROOT_PASSWORD 등) 노출 (CVE-2023-28432 계열, MinIO 정보노출)",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    },
+    {
+      "evidence_id": "EVID-EXPLOIT-003",
+      "control_id": "CTL-EXEC-004",
+      "description": "노출된 root credential로 SigV4 서명 S3 ListObjectsV2 — lab-final 버킷 객체 3개(README.txt, archive/decoy.json, evidence/final.json) 확인",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    },
+    {
+      "evidence_id": "EVID-EXPLOIT-004",
+      "control_id": "CTL-EXEC-005",
+      "description": "SigV4 서명 S3 GetObject — evidence/final.json에서 최종 flag 확보, archive/decoy.json은 미끼 flag",
+      "preserve_in_trace": true,
+      "report_eligible": true
+    }
+  ]
+}
