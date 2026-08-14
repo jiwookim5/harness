@@ -189,3 +189,44 @@
   다음 CVE 재사용 영향: 앞으로 모든 CVE는 D3 Gate를 통과하려면 `evidence/
   same-control-check.md`·`finding-summary.md`도 채워야 함 — "요청/결과 원문은 있는데
   그게 뭘 의미하는지 정리한 사람용 요약이 없는" 상태로는 더 이상 GO를 받을 수 없음
+
+## v1.9 (CVE 학습 → CTF 모의해킹 전환, D1/D2/D3 단일 Gate로 통합, 2026-08-14)
+
+- 배경: CVE 분석 사이클(CVE-2021-41773/43798)이 끝나서 앞으로의 작업은 CTF 모의해킹에
+  포커스한다. 기존에는 D1(분석)/D2(실행)/D3(증거·보고서)를 사흘에 걸쳐 따로 승인받았는데,
+  이 3단계 분리 자체를 하나의 Gate로 합쳐달라는 요청을 반영함
+  변경 위치:
+  - `scripts/lib/checks.mjs`: `checkExecutionConsistency`/`checkRequestResultLogs`가
+    받던 `cveId` 인자를 `base`(디렉터리 prefix) 인자로 일반화하고, `checkEvidenceWriteups`를
+    `checkSameControlWriteup`/`checkFindingSummaryWriteup`로 분리 — `checkD3`는 동작 변경
+    없이 그대로 `cves/${cveId}`를 base로 넘김. 새 `checkRun(root, targetId)`를 추가해
+    `ctf/${targetId}/`를 대상으로 D1+D2+D3에 해당하던 검사를 한 번에 수행. `isApprovedTarget()`
+    추가 — loopback이거나, `scope.md`에 "허용 Target"과 "CTF 승인"(외부 대상 승인 날짜·
+    승인자)이 함께 명시된 경우만 통과. `lab/compose.yaml`이 없는 경우(외부 CTF 플랫폼) Docker
+    안전 검사는 건너뜀(`checkTargetCompose`). vulnerable.json/patched.json Same-Control 쌍
+    비교는 CTF에 적용되지 않는 개념이라 `checkRun`에서 의도적으로 제외
+  - `scripts/check-run.mjs`(신규): `npm run check:run -- <TARGET-ID>` CLI
+  - `scripts/new-target.mjs`(신규): `npm run new:target -- <TARGET-ID>`로 `ctf/<TARGET-ID>/`
+    작업공간 스캐폴딩 (`new-cve.mjs`와 동일 패턴)
+  - `harness/templates/target-scope.md`, `recon.md`, `ctf-report.md`(신규 템플릿)
+  - `harness/workflow.md`: CTF 단일 Gate 흐름을 기본으로 재작성하되, 레거시 D1 Gate가
+    요구하는 `PLAN`/`HUMAN GO`/`RUN`/`CHECK` 문구는 그대로 유지해 기존 CVE 재검증이 깨지지
+    않게 함. 3일 분리 CVE 흐름은 "이전 CVE 사이클(기록·이력)" 절로 보존
+  - `harness/policies/invariants.md`: Target 불변조건에 CTF 외부 대상 허용 조건(허용
+    Target + CTF 승인) 추가, CVE 학습 사이클은 여전히 loopback 전용임을 명시. Flag 확보는
+    Credential 수집 STOP 조건의 예외임을 명시
+  - `package.json`: `check:run`, `new:target` 스크립트 추가(기존 스크립트는 변경 없음)
+  - `tests/run-check.test.mjs`(신규 7건), `tests/new-target.test.mjs`(신규 3건)
+- 발견한 실제 버그: 첫 템플릿(`target-scope.md`)에 `허용 Target: UNSET (예: ...)`처럼 같은
+  줄에 괄호 설명을 붙였더니, 정규식이 줄 전체를 값으로 읽어 "UNSET"이 아닌 것으로 오인식되고
+  그 값이 자기 자신과 같다는 이유로 "CTF 승인됨"으로 잘못 통과하는 사각지대를 실제 스캐폴딩
+  →Gate 실행으로 발견함. 값은 한 줄에 하나만 적고 설명은 별도 HTML 주석으로 옮겨 수정
+  (intake.md 템플릿과 동일한 기존 관례를 따름)
+  재실행: `npm test`(52/52, 신규 10건 포함). `npm run check -- D1/D2/D3 <CVE-ID>`로
+  CVE-2021-41773/43798 둘 다 여전히 GO(레거시 Gate 무변경 확인). `npm run new:target --
+  demo-smoke-test`로 실제 워크스페이스를 스캐폴딩하고 `npm run check:run`을 REVISE(빈
+  스켈레톤) → 모든 필드를 채운 뒤 GO까지 실제로 재현해 확인. 외부 Target 승인 없음/있음
+  두 경우 모두 실제 fixture로 STOP/GO 분기 확인
+  다음 Target 재사용 영향: 앞으로 CTF Target은 `npm run new:target -- <TARGET-ID>`로
+  시작하고, `npm run check:run -- <TARGET-ID>` 하나로 검증한다. `npm run check -- D1|D2|D3
+  <CVE-ID>`는 기존 CVE 재검증용으로 계속 남아있지만 새 CVE 작업에는 더 이상 쓰지 않는다

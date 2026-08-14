@@ -10,7 +10,9 @@
     "test": "node --test",
     "validate": "node scripts/validate-starter.mjs",
     "check": "node scripts/check-day.mjs",
+    "check:run": "node scripts/check-run.mjs",
     "new:cve": "node scripts/new-cve.mjs",
+    "new:target": "node scripts/new-target.mjs",
     "pack": "node scripts/package-starter.mjs"
   }
 }

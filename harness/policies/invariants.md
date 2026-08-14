@@ -1,6 +1,9 @@
 # 고정 불변조건
 
-- Target은 localhost 또는 현재 저장소의 격리 Compose Service다.
+- Target은 localhost, 현재 저장소의 격리 Compose Service, 또는 학생이 `ctf/<TARGET-ID>/
+  scope.md`에 "허용 Target"과 "CTF 승인"(날짜·승인자·플랫폼)을 명시한 외부 CTF 대상이다.
+  CVE 학습 사이클(`cves/CVE-*`)은 여전히 loopback 전용이다 — 이 완화는 CTF 모의해킹에만
+  적용된다.
 - 실제 Control은 GO <control_id> 뒤 실행한다.
 - AI Draft와 Tool Observation을 분리한다.
 - stdout, stderr, exit code, 요청, 응답, 로그, Cleanup을 보존한다.
@@ -41,6 +44,8 @@
 
 - `알아서 진행해`, `진행해`, 과제를 맡겼다는 사실 자체는 실제 실행 승인이 아니다.
 - 정확한 `GO <control_id>`가 아니면 실행하지 않는다.
-- localhost, 127.0.0.1, 현재 저장소가 만든 격리 Compose Service 밖의 Target은 STOP한다.
-- Credential 수집, 파괴 행위, 지속성, Reverse Shell, 무제한 Scan은 STOP한다.
+- localhost, 127.0.0.1, 현재 저장소가 만든 격리 Compose Service, 또는 scope.md에 명시된
+  "CTF 승인" 대상 밖의 Target은 STOP한다. 외부 Target인데 CTF 승인이 없으면 STOP한다.
+- Credential 수집, 파괴 행위, 지속성, Reverse Shell, 무제한 Scan은 STOP한다. 문제가 요구하는
+  Flag 값 자체를 확보하는 것은 Credential 수집이 아니다.
 - Source 또는 Observation 없는 FACT를 최종 결론에 반영하려 하면 REVISE로 되돌린다.
