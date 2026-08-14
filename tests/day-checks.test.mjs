@@ -158,6 +158,10 @@ const d3Files = {
     "# All Requests\nGET /marker.txt HTTP/1.1\n",
   "cves/CVE-2021-41773/evidence/all-results.md":
     "# All Results\nEVID-001: HTTP 200\nEVID-002: HTTP 404\n",
+  "cves/CVE-2021-41773/evidence/same-control-check.md":
+    "# Same-Control Hash Check\ninput_sha256/request_sha256/criteria_sha256 비교\n판정: Same-Control.\n",
+  "cves/CVE-2021-41773/evidence/finding-summary.md":
+    "# Finding Summary\n## 대상 (Target)\n## 보낸 요청\n## 결과\n",
   "cves/CVE-2021-41773/retrospective/reuse-check.md":
     "# Reuse\nBlocker: Matcher 설명 누락\nHarness 변경: Report Gate 추가\n다음 CVE: 공통 Gate 재사용\n",
   "harness/CHANGELOG.md":
@@ -210,6 +214,54 @@ test("D3 rejects all-requests.md with no HTTP request line", () => {
   };
   assert.ok(
     checkDay(fixture(files), "D3").some((issue) => issue.includes("no HTTP request line"))
+  );
+});
+
+test("D3 rejects a missing same-control-check.md", () => {
+  const files = { ...d3Files };
+  delete files["cves/CVE-2021-41773/evidence/same-control-check.md"];
+  assert.ok(
+    checkDay(fixture(files), "D3").some((issue) => issue.includes("same-control-check.md: missing"))
+  );
+});
+
+test("D3 rejects same-control-check.md without a sha256 comparison", () => {
+  const files = {
+    ...d3Files,
+    "cves/CVE-2021-41773/evidence/same-control-check.md": "# Same-Control Hash Check\n판정: Same-Control.\n"
+  };
+  assert.ok(
+    checkDay(fixture(files), "D3").some((issue) => issue.includes("missing sha256 comparison"))
+  );
+});
+
+test("D3 rejects same-control-check.md without a verdict", () => {
+  const files = {
+    ...d3Files,
+    "cves/CVE-2021-41773/evidence/same-control-check.md": "# Same-Control Hash Check\nsha256 비교 결과 표\n"
+  };
+  assert.ok(
+    checkDay(fixture(files), "D3").some((issue) => issue.includes("missing 판정"))
+  );
+});
+
+test("D3 rejects a missing finding-summary.md", () => {
+  const files = { ...d3Files };
+  delete files["cves/CVE-2021-41773/evidence/finding-summary.md"];
+  assert.ok(
+    checkDay(fixture(files), "D3").some((issue) => issue.includes("finding-summary.md: missing"))
+  );
+});
+
+test("D3 rejects finding-summary.md missing a required section", () => {
+  const files = {
+    ...d3Files,
+    "cves/CVE-2021-41773/evidence/finding-summary.md": "# Finding Summary\n## 대상 (Target)\n## 보낸 요청\n"
+  };
+  assert.ok(
+    checkDay(fixture(files), "D3").some(
+      (issue) => issue.includes("finding-summary.md") && issue.includes("결과")
+    )
   );
 });
 

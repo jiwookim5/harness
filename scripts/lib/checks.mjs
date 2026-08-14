@@ -192,6 +192,28 @@ function checkRequestResultLogs(root, cveId, index, issues) {
   }
 }
 
+function checkEvidenceWriteups(root, cveId, issues) {
+  // all-requests.md/all-results.md cover the raw transcript, but nothing
+  // required the two human-facing writeups that explain what it means:
+  // same-control-check.md (do the vulnerable/patched hashes actually match)
+  // and finding-summary.md (what was sent, where the bug is, what happened).
+  // Both existed for CVE-2021-43798 by convention only — no Gate enforced
+  // them, so a future CVE could skip straight to raw evidence with no
+  // reviewable summary at all.
+  const scPath = `cves/${cveId}/evidence/same-control-check.md`;
+  const sameControl = read(root, scPath, issues);
+  if (sameControl && !/sha256/i.test(sameControl)) {
+    issues.push(scPath + ": missing sha256 comparison");
+  }
+  if (sameControl && !/판정/.test(sameControl)) {
+    issues.push(scPath + ": missing 판정 (verdict)");
+  }
+
+  const fsPath = `cves/${cveId}/evidence/finding-summary.md`;
+  const findingSummary = read(root, fsPath, issues);
+  requireText(findingSummary, fsPath, ["대상", "보낸 요청", "결과"], issues);
+}
+
 function checkD3(root, cveId) {
   const issues = [];
   const vulnerablePath = `cves/${cveId}/execution/vulnerable.json`;
@@ -217,6 +239,7 @@ function checkD3(root, cveId) {
 
   checkExecutionConsistency(root, cveId, vulnerable, patched, issues);
   checkRequestResultLogs(root, cveId, index, issues);
+  checkEvidenceWriteups(root, cveId, issues);
 
   const entries = Array.isArray(index.entries) ? index.entries : [];
   const byId = new Map(entries.map((entry) => [entry.evidence_id, entry]));

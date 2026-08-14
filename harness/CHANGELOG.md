@@ -165,3 +165,27 @@
   `all-results.md`를 채워야 하고, `index.json`에 새 evidence_id를 추가하면
   `all-results.md`도 같이 업데이트해야 Gate가 통과함 — 결과만 JSON에 적고 사람이 읽을
   전문을 빼먹는 실수를 Gate 단계에서 막음
+
+## v1.8 (근거 요약 문서가 관례로만 존재, Gate 강제 없음, 2026-08-14)
+
+- 실패 Ref: `evidence/same-control-check.md`와 `evidence/finding-summary.md`가
+  CVE-2021-43798에는 있었지만 CVE-2021-41773에는 `finding-summary.md`가 아예 없었음.
+  두 파일 다 어떤 Gate도 존재를 요구하지 않아서, 있으면 좋고 없어도 통과되는 "관례"에
+  불과했음 — v1.7로 요청/결과 전문은 강제했지만, 그걸 사람이 읽고 이해하도록 정리한
+  요약 문서는 강제하지 않은 사각지대
+  원인: `evidence/` 산출물을 설계할 때 "기계가 대조할 수 있는 것"(all-requests.md/
+  all-results.md의 evidence_id 존재 여부)만 Gate 규칙으로 만들고, "사람이 근거를
+  재구성할 수 있는가"는 검사 대상에서 빠졌음
+  변경 위치: `scripts/lib/checks.mjs`에 `checkEvidenceWriteups()` 추가, `checkD3()`에서
+  호출 — `evidence/same-control-check.md`(sha256 비교 + 판정 문구 포함) ·
+  `evidence/finding-summary.md`(대상/보낸 요청/결과 세 섹션 포함) 존재를 요구.
+  `harness/templates/same-control-check.md`, `finding-summary.md` 신규 추가.
+  `cves/CVE-2021-41773/evidence/finding-summary.md` 신규 작성(같은 CVE의
+  root-cause.md·same-control-check.md 내용을 그대로 반영)
+  재실행: `npm test`(42/42, 신규 테스트 5개 포함), `npm run check -- D1/D2/D3`(두 CVE
+  모두 GO). 43798의 `finding-summary.md`를 잠깐 옮겨서 없앤 뒤 재실행 →
+  `REVISE ...finding-summary.md: missing`부터 각 섹션 누락까지 4건 정확히 잡힘.
+  원상복구 후 다시 GO 확인
+  다음 CVE 재사용 영향: 앞으로 모든 CVE는 D3 Gate를 통과하려면 `evidence/
+  same-control-check.md`·`finding-summary.md`도 채워야 함 — "요청/결과 원문은 있는데
+  그게 뭘 의미하는지 정리한 사람용 요약이 없는" 상태로는 더 이상 GO를 받을 수 없음
