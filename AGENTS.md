@@ -1,4 +1,4 @@
-# Security Wave 공통 AI Agent 계약
+# Security 공통 AI Agent 계약
 
 AI 출력은 Evidence가 아니다.
 

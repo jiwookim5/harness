@@ -1,30 +1,25 @@
-# Scope — UNSET
+# Scope — lab02-security-wave
 
 <!-- 값은 한 줄에 하나만 적고 줄 끝에 괄호 설명을 붙이지 않는다 — Gate가 줄 전체를
-     값으로 읽는다. 예시는 이 주석에 남긴다.
-     대상 예: PicoCTF 2026 — pwn/baby-rop, 또는 HTB 머신 이름
-     허용 Target 예: 127.0.0.1:PORT 또는 승인받은 외부 CTF 호스트:포트
-     CTF 승인 예 (허용 Target이 loopback이 아닐 때만 필수): 2026-08-14 학생 본인 승인,
-     플랫폼: PicoCTF, 문제 URL: https://... -->
+     값으로 읽는다. -->
 
 ## 대상
 
-- 대상: UNSET
-- 허용 Target: UNSET
-- CTF 승인: UNSET
+- 대상: Security Wave CTF 사이트 (두 번째 문제)
+- 허용 Target: lab02.security-wave.n-e.kr
+- CTF 승인: DRAFT — 학생 본인 확인 대기 (승인 날짜/플랫폼 확정 필요)
 
 ## Out of Scope
 
-- 위 "허용 Target" 이외의 어떤 호스트에도 요청·스캔하지 않는다.
+- 위 "허용 Target"(lab02.security-wave.n-e.kr) 이외의 어떤 호스트·포트에도 요청·스캔하지 않는다.
 - Credential 수집(문제가 요구하는 flag 값 자체는 예외), 파괴적 동작, 지속성(persistence),
   Reverse Shell을 만들지 않는다.
-- 무제한 Scan(전체 포트 스윕, 무차별 디렉터리/서브도메인 스캔)은 하지 않는다 — 문제가
-  명시한 범위 안의 확인된 서비스만 다룬다.
+- 무제한 Scan(전체 포트 스윕, 무차별 디렉터리/서브도메인 스캔)은 하지 않는다 — 화면에
+  노출된 기능·엔드포인트 확인에 한정한다.
 
 ## STOP 조건
 
-- 요청 대상이 위 "허용 Target"이 아니면 즉시 중지한다.
-- 허용 Target이 loopback이 아닌데 "CTF 승인"이 없으면 중지한다.
+- 요청 대상이 lab02.security-wave.n-e.kr(및 그 하위 명시 경로)가 아니면 즉시 중지한다.
 - Control Card 없이, 또는 정확한 `GO <control_id>` 형식이 아닌 승인으로 실행을
   요청받으면 중지한다.
 - "알아서 해", "진행해" 같은 일반 승인은 실행 승인으로 간주하지 않고 중지한다.
