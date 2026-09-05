@@ -13,3 +13,7 @@ cves/*/evidence/raw/*
 !cves/*/evidence/raw/.gitkeep
 ctf/*/evidence/raw/*
 !ctf/*/evidence/raw/.gitkeep
+
+# CJ_REAL 캡스톤 프로젝트 — 민감한 실제 대상 정보 및 서비스 장애 기록
+ctf/CJ_REAL/
+CTF_STAGE3_COMPLETE_REPORT.md
