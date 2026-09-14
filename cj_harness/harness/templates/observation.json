@@ -1,0 +1,17 @@
+{
+  "observation_id": "OBS-UNSET",
+  "control_id": "CTL-UNSET",
+  "environment": "UNSET",
+  "target": "localhost",
+  "input_sha256": "UNSET",
+  "request_sha256": "UNSET",
+  "criteria_sha256": "UNSET",
+  "matcher": "UNSET",
+  "stdout_ref": "UNSET",
+  "stderr_ref": "UNSET",
+  "exit_code": null,
+  "request_ref": "UNSET",
+  "response_ref": "UNSET",
+  "server_log_ref": "UNSET",
+  "cleanup_result": "UNSET"
+}

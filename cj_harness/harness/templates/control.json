@@ -1,0 +1,12 @@
+{
+  "control_id": "CTL-UNSET",
+  "purpose": "UNSET",
+  "command": "UNSET",
+  "target": "localhost",
+  "expected_impact": "UNSET",
+  "success_matcher": "UNSET",
+  "failure_matcher": "UNSET",
+  "timeout_seconds": 10,
+  "cleanup": "UNSET",
+  "decision": "PENDING"
+}

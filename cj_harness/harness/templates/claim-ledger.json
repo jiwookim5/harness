@@ -1,0 +1,17 @@
+{
+  "claims": [
+    {
+      "claim_id": "CLM-001",
+      "statement": "UNKNOWN",
+      "status": "UNKNOWN",
+      "source_refs": [],
+      "counter_evidence": "UNKNOWN",
+      "ai_origin": false,
+      "student_verdict": "UNKNOWN",
+      "observation_refs": [],
+      "reviewer": "UNASSIGNED",
+      "review_verdict": "PENDING",
+      "report_eligible": false
+    }
+  ]
+}
